@@ -1,11 +1,12 @@
 ## Functions to generate the figures used the in the manuscript 
 ## 'US Tobacco 21 policies and potential mortality reductions by state'
-
+library(ggplot2)
+library(grid)  # For textGrob, if needed
 labellist=c('A.', 'B.', 'C.', 'D.')
 paperfips=c('06','21','25','55')
 
 ##------------------- Smoking Attributable Deaths Averted ---------------------
-SADsAvertedFig <- function(fipscode, labelval) {
+SADs_averted_fig <- function(fipscode, labelval) {
   thisstate <- subset(df_mort.policy, state == fipscode & gender == "Both")
   thisstate$policy.scenario <- factor(thisstate$policy.scenario,levels=c("fedstatelocal","statelocal","local")) # re-order policy scenarios
   fig <- ggplot(data = thisstate) + 
@@ -38,9 +39,9 @@ SADsAvertedFig <- function(fipscode, labelval) {
   return(fig)
 }
 
-jpeg(file=paste0('../figs/SADs_averted_manuscript_', date_variable, '.jpg'), width=6, height=6, units="in", res=1800)
-ggarrange(SADsAvertedFig(paperfips[1],labellist[1]),SADsAvertedFig(paperfips[2], labellist[2]),
-          SADsAvertedFig(paperfips[3], labellist[3]), SADsAvertedFig(paperfips[4], labellist[4]),
+jpeg(file=paste0('figs/SADs_averted_manuscript_', date_variable, '.jpg'), width=6, height=6, units="in", res=1800)
+ggarrange(SADs_averted_fig(paperfips[1],labellist[1]),SADs_averted_fig(paperfips[2], labellist[2]),
+          SADs_averted_fig(paperfips[3], labellist[3]), SADs_averted_fig(paperfips[4], labellist[4]),
           ncol=2,nrow=2, common.legend = TRUE, legend='top')
 
 dev.off()
@@ -66,7 +67,7 @@ LYG_manuscript<-function(fipscode, labelval){
           axis.text.x=element_text(angle=60, hjust=1))
   return(fig)
 }
-jpeg(file=paste0('../figs/LYG_manuscript_', date_variable, '.jpg'), width=6, height=6, units="in", res=1800)
+jpeg(file=paste0('figs/LYG_manuscript_', date_variable, '.jpg'), width=6, height=6, units="in", res=1800)
 ggarrange(LYG_manuscript(paperfips[1],labellist[1]),LYG_manuscript(paperfips[2], labellist[2]),
           LYG_manuscript(paperfips[3], labellist[3]), LYG_manuscript(paperfips[4], labellist[4]),
           ncol=2,nrow=2, common.legend = TRUE)
@@ -109,7 +110,7 @@ plot_policy_cover<- function(s,labelval){
   return(plot) 
 }
 
-jpeg(file=paste0('../figs/state_cover_manuscript', date_variable, '.jpg'), width=6.5,height = 6.5, units ="in", res=1800)
+jpeg(file=paste0('figs/state_cover_manuscript', date_variable, '.jpg'), width=6.5,height = 6.5, units ="in", res=1800)
 ggarrange(plot_policy_cover(paperfips[1],labellist[1]),plot_policy_cover(paperfips[2], labellist[2]),
           plot_policy_cover(paperfips[3], labellist[3]), plot_policy_cover(paperfips[4], labellist[4]),
           ncol=2,nrow=2, common.legend = TRUE)
@@ -118,7 +119,7 @@ dev.off()
 #-------- stacked mortality reduction bar plots all states--------------------------
 #true SADs averted values
 genderval='Both'
-Barplot_allstates_SADs <-ggplot(subset(df_tiered_mort, gender==genderval & year==2100), aes(x=reorder(abbr, policyeffort), y=policyeffort, fill=factor(policy_tier, levels=c('federal', 'state','local')))) +
+barplot_allstates_SADs <-ggplot(subset(df_tiered_mort, gender==genderval & year==2100), aes(x=reorder(abbr, policyeffort), y=policyeffort, fill=factor(policy_tier, levels=c('federal', 'state','local')))) +
   geom_bar(stat='identity')+ coord_flip()+
   scale_fill_manual(values = c('red3', 'blue4', 'aquamarine3'), 
                     labels = c('Federal', 'State', 'Local')) + 
@@ -127,7 +128,7 @@ Barplot_allstates_SADs <-ggplot(subset(df_tiered_mort, gender==genderval & year=
   guides(fill = guide_legend(title = "T21 policy tier"))+labs(title= paste0('A. Absolute mortality reductions by state'))+theme_light()
 
 #relative reduction in SADs
-Barplot_allstates_RR <-ggplot(subset(df_tiered_mort, gender==genderval & year==2100), aes(x=reorder(abbr, SADreduc_tier), y=SADreduc_tier, fill=factor(policy_tier, levels=c('federal', 'state','local')))) +
+barplot_allstates_RR <-ggplot(subset(df_tiered_mort, gender==genderval & year==2100), aes(x=reorder(abbr, SADreduc_tier), y=SADreduc_tier, fill=factor(policy_tier, levels=c('federal', 'state','local')))) +
   geom_bar(stat='identity')+ coord_flip()+
   scale_fill_manual(values = c('red3', 'blue4', 'aquamarine3'), 
                     labels = c('Federal', 'State', 'Local')) + 
@@ -136,8 +137,52 @@ Barplot_allstates_RR <-ggplot(subset(df_tiered_mort, gender==genderval & year==2
   guides(fill = guide_legend(title = "T21 policy tier"))+labs(title= paste0('B. Relative mortality reductions by state'))+theme_light()
 
 ########### Both
-jpeg(filename = paste0('../figs/SADs_allstates_manuscript_', date_variable, '.jpg'),width=8, height=6, units ="in", res=1800)
+jpeg(filename = paste0('figs/SADs_allstates_manuscript_', date_variable, '.jpg'),width=8, height=6, units ="in", res=1800)
 genderval='Both'
-ggarrange(Barplot_allstates_SADs, Barplot_allstates_RR, nrow=1, common.legend = TRUE)
+ggarrange(barplot_allstates_SADs, barplot_allstates_RR, nrow=1, common.legend = TRUE)
 dev.off()
+
+#------------------- US T21 policy coverage----------------------------------------
+load("data/us_t21coverage.RData")
+#add in state data
+T21_state <- read_excel("data-raw/T21policycoverage.xlsx",sheet="Tobacco21.org")
+T21_state$Date <- as.Date(with(T21_state,paste(year,month,day,sep="-")),"%Y-%m-%d")
+#statelabels_orig = merge(us_t21coverage[,c("year","month","statelocal")],T21_state[,c("year","month","abbrev","Date")], by=c("month","year"),all.x=TRUE)
+statelabels = merge(T21_state[,c("year","month","abbrev","Date")],us_t21coverage[,c("year","month","statelocal")], by=c("month","year"),all.x=TRUE)
+
+#manuscript version
+plotUS <- ggplot(data=us_t21coverage) +
+  geom_line(aes(x=Date, y=fedstatelocal*100)) +
+  geom_ribbon(aes(x=Date, ymin=statelocal*100, ymax=fedstatelocal*100), alpha=0.3, fill="#E69F00") +
+  geom_ribbon(aes(x=Date, ymin=local*100, ymax=statelocal*100), alpha=0.3, fill="#0072B2") +
+  geom_area(aes(x=Date, y=local*100), alpha=0.3, fill="#009E73") +
+  geom_vline(xintercept = as.numeric(as.Date("2019-12-20")), linetype="dashed", color="#E69F00", size=0.6) +
+  annotate(geom="text", x=as.Date("2014-01-05"), y=35, label="Combined T21", color="black", hjust=0, size=3) +
+  annotate(geom="text", x=as.Date("2014-01-05"), y=90, label="Federal T21", color="#E69F00", hjust=0, size=3) +
+  annotate(geom="text", x=as.Date("2014-01-05"), y=80, label="State T21", color="#0072B2", hjust=0, size=3) +
+  annotate(geom="text", x=as.Date("2014-01-05"), y=70, label="Local T21", color="#009E73", hjust=0, size=3) +
+  geom_text_repel(data=statelabels, aes(x=Date, y=statelocal*100, label=abbrev), color="#0072B2",
+                  bg.color="white", bg.r=0.15, force=0.05, nudge_y=0.05, min.segment.length=0, segment.alpha=0.5,
+                  max.overlaps=Inf, size=3, segment.size=0.3) +
+  ylab("Percent of population covered by T21 (%)") +
+  xlab("Year") +
+  scale_y_continuous(limits=c(0, 100)) +
+  scale_x_date(date_labels="%Y", date_breaks="1 year",
+               limits=c(as.Date("2014-01-01"), as.Date("2024-12-31"))) +
+  theme_light() +
+  theme(
+    text = element_text(size=10),  # Increase overall text size
+    axis.title = element_text(size=12),  # Axis titles
+    axis.text = element_text(size=10),  # Axis text
+    legend.text = element_text(size=10),  # Legend text
+    legend.title = element_text(size=12),  # Legend title
+    axis.text.x = element_text(angle=60, hjust=1),  # Adjust x-axis text angle
+    panel.grid.minor = element_blank()
+  )
+
+p<- plotUS
+pdf(file="figs/US_T21policycoverage_2003.2024.pdf", width=8,height = 6,onefile=TRUE)
+dev.off()
+
+
 

@@ -2,13 +2,13 @@
 ## contains code for formatting and processing state specific life expectancy,
 ## census population data, mortality probabilities, and smoking initiation/cessation probabilities
 
-mainDir <- "/Users/ac3456/Dropbox/state_tcp_tool/LC_code/Darth_TCP_model/"
+mainDir <- "/Users/ac3456/Dropbox/state_tcp_tool/LC_code/TCP_model/"
 setwd(file.path(mainDir))
 
 library(reshape2)
 library(readr)
 library(readxl)
-
+library(cdlTools)
 v_statefips=c('01','02','04','05','06','08','09',10:13,15:42,44:51,53:56)
 startbc <- 1908   # starting birth cohort 
 endbc <- 2100     # ending birth cohort
@@ -16,8 +16,8 @@ endbc <- 2100     # ending birth cohort
 # Life expectancy data ----------------------------------------------------
 for (fipscodeval in v_statefips){
   # Life expectancy for never smokers (NS) from 1908 to 2100
-  df_M.NS.LE=cbind(read.csv("../data-raw/life_exp_MaleNever.csv"), 'Men', 'Never') 
-  df_F.NS.LE=cbind(read.csv("../data-raw/life_exp_FemaleNever.csv"), 'Women', 'Never')
+  df_M.NS.LE=cbind(read.csv("data-raw/life_exp_MaleNever.csv"), 'Men', 'Never') 
+  df_F.NS.LE=cbind(read.csv("data-raw/life_exp_FemaleNever.csv"), 'Women', 'Never')
   colnames(df_M.NS.LE)=colnames(df_F.NS.LE)=c('fips', 'age', 'bc', 'abbr', 'life_exp', 'sex', 'status')
   
   # Subset Life expectancy by state
@@ -30,7 +30,7 @@ for (fipscodeval in v_statefips){
   m_F.NS.LE=array(v_F.NS.LE, dim=c(100,193))
   
   
-  save(m_M.NS.LE,m_F.NS.LE,file=paste0("../data/state_inputs/le_",fipscodeval,".RData"))
+  save(m_M.NS.LE,m_F.NS.LE,file=paste0("data/state_inputs/le_",fipscodeval,".RData"))
 }
 
 # Census population data --------------------------------------------------
@@ -343,6 +343,47 @@ for (f in v_statefips){
        file=paste0("data/state_inputs/smk_",f,".RData"))
   print(Sys.time() - t_init) # End timer
 }
+
+#--------- US policy coverage -----------------------------------------------
+
+## Add US population covered by T21
+USstatetotals <- read_excel('data-raw/Census State Population Total 2003-2023.xlsx',sheet='statetotals')
+USstatetotals=melt(USstatetotals,id.vars='statename',variable.name = 'year',value.name = 'statepop') #statepop
+USstatetotals$year <- as.numeric(as.character(USstatetotals$year))
+# Filter the data for the year 2023
+data_2023 <- subset(USstatetotals, year == 2023)
+
+# Modify the year to 2024
+data_2024 <- data_2023
+data_2024$year <- 2024
+
+# Append the new 2024 data to the original dataframe
+USstatetotals <- rbind(USstatetotals, data_2024)
+
+statetotals <- subset(USstatetotals,year>=2014 & statename!="United States")
+ustotals <- subset(USstatetotals,year>=2014 & statename=="United States")
+
+
+t21data2003.2024 = merge(statetotals,t21data2003.2024,by = c('statename','year'),all = TRUE)
+
+# number of people covered by T21 in each state 2014-2023
+t21data2003.2024$fedstatelocal_covered = t21data2003.2024$fedstatelocal*t21data2003.2024$statepop
+t21data2003.2024$statelocal_covered = t21data2003.2024$statelocal*t21data2003.2024$statepop
+t21data2003.2024$local_covered = t21data2003.2024$local*t21data2003.2024$statepop
+
+# Aggregate by month, year across all states
+us_t21coverage <- t21data2003.2024 %>% 
+  group_by(month, year) %>% 
+  summarize(us_fsl_covered = sum(fedstatelocal_covered),us_sl_covered = sum(statelocal_covered),us_l_covered = sum(local_covered))
+
+us_t21coverage <- merge(us_t21coverage,ustotals, by=c('year'))
+us_t21coverage$fedstatelocal = (us_t21coverage$us_fsl_covered / us_t21coverage$statepop)
+us_t21coverage$statelocal = (us_t21coverage$us_sl_covered / us_t21coverage$statepop)
+us_t21coverage$local = (us_t21coverage$us_l_covered / us_t21coverage$statepop)
+us_t21coverage$day=1
+us_t21coverage$Date <- as.Date(with(us_t21coverage,paste(year,month,day,sep="-")),"%Y-%m-%d")
+
+save(us_t21coverage, file = "data/us_t21coverage.RData")
 
 
 ## Sources:

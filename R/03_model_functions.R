@@ -161,7 +161,7 @@ calculate_mort<-function(l_prev_outputs, m_p_mortNS_AP, m_p_mortCS_AP,
 #------------- TCP tool outputs, comment out if not needed ---------------------
 #-------------------------------------------------------------------------------
 
-generate_TCPoutput <- function(v_M.SADsAvert_cum, v_F.SADsAvert_cum, v_M.LYGcum, v_F.LYGcum,
+generate_TCPoutput <- function(v_M.SADs_avert_cum, v_F.SADs_avert_cum, v_M.LYGcum, v_F.LYGcum,
                     l_M.base.mort, l_F.base.mort, l_M.policy.mort, l_F.policy.mort,
                     l_M.base.prev, l_F.base.prev, l_M.policy.prev,l_F.policy.prev){
 
@@ -172,13 +172,13 @@ generate_TCPoutput <- function(v_M.SADsAvert_cum, v_F.SADsAvert_cum, v_M.LYGcum,
 
   # FILTER DATA FOR ALL COHORTS TO 2005
   year=startbc:endbc
-  df_B.cAllSADsAverted<- as.data.frame(cbind(year, 'ALL', v_M.SADsAvert_cum, v_F.SADsAvert_cum, policyyear))
-  df_B.cAllSADsAverted <- df_B.cAllSADsAverted[df_B.cAllSADsAverted$year >= 2005,]
-  colnames(df_B.cAllSADsAverted)=c('year', 'cohort', 'deaths_avoided_males', 'deaths_avoided_females','policy_year')
+  df_B.cSADs_averted_all<- as.data.frame(cbind(year, 'ALL', v_M.SADs_avert_cum, v_F.SADs_avert_cum, policyyear))
+  df_B.cSADs_averted_all <- df_B.cSADs_averted_all[df_B.cSADs_averted_all$year >= 2005,]
+  colnames(df_B.cSADs_averted_all)=c('year', 'cohort', 'deaths_avoided_males', 'deaths_avoided_females','policy_year')
 
-  df_B.cAllLYG<- as.data.frame(cbind(year, 'ALL', v_M.LYGcum, v_F.LYGcum, policyyear ))
-  df_B.cAllLYG <- df_B.cAllLYG[df_B.cAllLYG$year >= 2005,]
-  colnames(df_B.cAllLYG)=c('year', 'cohort', 'cLYG_males', 'cLYG_females','policy_year')
+  df_B.cLYG_all<- as.data.frame(cbind(year, 'ALL', v_M.LYGcum, v_F.LYGcum, policyyear ))
+  df_B.cLYG_all <- df_B.cLYG_all[df_B.cLYG_all$year >= 2005,]
+  colnames(df_B.cLYG_all)=c('year', 'cohort', 'cLYG_males', 'cLYG_females','policy_year')
 
   # WE WANT TO ISOLATE RESULTS FOR SPECIFIC COHORTS
   # SPECIFY TCP TOOL COHORTS
@@ -226,7 +226,7 @@ generate_TCPoutput <- function(v_M.SADsAvert_cum, v_F.SADsAvert_cum, v_M.LYGcum,
   deathsfile<- deathsfile[,-ncol(deathsfile)]
   deathsfile <- deathsfile[deathsfile$year >= 2005,]
   #ADD IN ALL
-  deathsfile<-rbind(deathsfile, df_B.cAllSADsAverted)
+  deathsfile<-rbind(deathsfile, df_B.cSADs_averted_all)
 
   # REPEAT FOR LYG
   lygfile$cLYG_females=F.lygfile$cLYG_females
@@ -236,7 +236,7 @@ generate_TCPoutput <- function(v_M.SADsAvert_cum, v_F.SADsAvert_cum, v_M.LYGcum,
   lygfile<- lygfile[, c('year', 'cohort', 'cLYG_males', 'cLYG_females','policy_year', 'age')]
   lygfile<- lygfile[,-ncol(lygfile)]
   lygfile <- lygfile[lygfile$year >= 2005,]
-  lygfile<- rbind(lygfile, df_B.cAllLYG)
+  lygfile<- rbind(lygfile, df_B.cLYG_all)
 
   initperc <- signif((mla.effect * 100), digits = 2)
 
@@ -252,8 +252,8 @@ generate_TCPoutput <- function(v_M.SADsAvert_cum, v_F.SADsAvert_cum, v_M.LYGcum,
   }
 
 
-  # write_csv(deathsfile,paste0('../source_data/',fips(fipscode,to="Abbreviation"), '/mla/deaths/deaths_',initperc, '_',policy.abbr,'.csv'))
-  # write_csv(lygfile,paste0('../source_data/',fips(fipscode,to="Abbreviation"), '/mla/lyg/lyg_',initperc,'_',policy.abbr,'.csv'))
+  # write_csv(deathsfile,paste0('source_data/',fips(fipscode,to="Abbreviation"), '/mla/deaths/deaths_',initperc, '_',policy.abbr,'.csv'))
+  # write_csv(lygfile,paste0('source_data/',fips(fipscode,to="Abbreviation"), '/mla/lyg/lyg_',initperc,'_',policy.abbr,'.csv'))
 
 
   #-------------- prevalence outputs ------------------------------------------
@@ -336,7 +336,7 @@ generate_TCPoutput <- function(v_M.SADsAvert_cum, v_F.SADsAvert_cum, v_M.LYGcum,
     }
   }
 
-  #write_csv(resultsfile,paste0('../source_data/',fips(fipscode,to="Abbreviation"), '/mla/results/results_',initperc,'_',policy.abbr,'.csv'))
+  #write_csv(resultsfile,paste0('source_data/',fips(fipscode,to="Abbreviation"), '/mla/results/results_',initperc,'_',policy.abbr,'.csv'))
 
 }
 
@@ -349,10 +349,10 @@ runstates <- function(fipscode, mla.effect, effect.CI, policy.scen){
   # by smoking status, birth cohort, calendar year
   # CENSUS DATA REQUIRES SOME CLEANING FOR ANNUAL BIRTHS BY GENDER
   
-  load(paste0("../data/state_inputs/p.mort_",fipscode,".RData")) #mortality
-  load(paste0("../data/state_inputs/smk_",fipscode,".RData")) #smoking init/cess cast as AC
-  load(paste0("../data/state_inputs/pop_",fipscode,".RData")) #census pop
-  load(paste0("../data/state_inputs/le_",fipscode,".RData")) #life expectacies
+  load(paste0("data/state_inputs/p.mort_",fipscode,".RData")) #mortality
+  load(paste0("data/state_inputs/smk_",fipscode,".RData")) #smoking init/cess cast as AC
+  load(paste0("data/state_inputs/pop_",fipscode,".RData")) #census pop
+  load(paste0("data/state_inputs/le_",fipscode,".RData")) #life expectacies
   
   
   # RUN STATUS QUO MODEL
@@ -411,28 +411,31 @@ runstates <- function(fipscode, mla.effect, effect.CI, policy.scen){
     )
   }
   
+
+#----------- DETERMINE POLICY DECAY SCENARIO BASED ON IPUT
   
-  ### PRIMARY POLICY SCENARIO, NO DECAY FUNCTION 
-  for (y in v_policy.ages){
-    m_MLAeffectsAP[y,] <- 1-mla.effect*v_policycoverage
+  if (policy_decay == 0) {
+    ### PRIMARY POLICY SCENARIO, NO DECAY FUNCTION
+    for (y in v_policy.ages) {
+      m_MLAeffectsAP[y, ] <- 1 - mla.effect * v_policycoverage
+    }
+  } else if (policy_decay == 1) {
+    ### ALTERNATE SCENARIO, EXPONENTIAL DECAY
+    # APPLY AN EXPONENTIAL DECAY TO POLICY EFFECTS STARTING IN 2030
+    m_mla.exp <- matrix(rep(1, 29300), nrow = 100, ncol = 293)
+    for (t in 123:293) { # 2030-2100
+      for (a in v_policy.ages) {
+        m_mla.exp[a, t] <- (1 - 0.2)^(t - 122)
+      }
+    }
+    colnames(m_mla.exp) <- startbc:endyear
+    
+    for (y in v_policy.ages) {
+      m_MLAeffectsAP[y, ] <- 1 - m_mla.exp[y, ] * mla.effect * v_policycoverage
+    }
+  } else {
+    stop("Invalid value for policy_decay. It should be 0 or 1.")
   }
-  
- 
-  ###------- ALTERNATE SCENARIO, EXPONENTAIL DECAY-------------------------------
-  # APPLY AN EXPONENTIAL DECAY TO POLCIY EFFECTS STARTING IN 2030
-  # m_mla.exp <- matrix(rep(1,29300), nrow=100, ncol=293)
-  # for (t in c(123:293)){ #2030-2100
-  #   for (a in v_policy.ages){
-  #     m_mla.exp[a,t] <- (1-0.2)**(t-122)
-  #   }
-  # }
-  # colnames(m_mla.exp) <- startbc:endyear
-  # 
-  # for (y in v_policy.ages){
-  #   m_MLAeffectsAP[y,] <- 1-m_mla.exp[y,]*mla.effect*v_policycoverage
-  # }
-  
-  ###------- ALTERNATE SCENARIO--------------------------------------------------
   
   ## APPLY POLICY EFFECTS TO BASELINE INITIATION
   m_F.init.policy_AP <- m_MLAeffectsAP*m_F.init.base_AP
@@ -483,18 +486,18 @@ runstates <- function(fipscode, mla.effect, effect.CI, policy.scen){
     m_F.CSprev <- l_F.policy.prev$m_CSprevAP
     
     # Create population matrices
-    m.M.Pop_AP <- as.matrix(cbind(df_M.census_data, rep(df_M.census_data[193], 100))) # Assume constant population sizes in future
-    m.F.Pop_AP <- as.matrix(cbind(df_F.census_data, rep(df_F.census_data[193], 100)))
+    m.M.pop_AP <- as.matrix(cbind(df_M.census_data, rep(df_M.census_data[193], 100))) # Assume constant population sizes in future
+    m.F.pop_AP <- as.matrix(cbind(df_F.census_data, rep(df_F.census_data[193], 100)))
     
     # Calculate prevalence for men
-    v_M.prev.minmax <- colSums(m.M.Pop_AP[(minage+1):(maxage+1), ] * m_M.CSprev[(minage+1):(maxage+1), ]) / colSums(m.M.Pop_AP[(minage+1):(maxage+1), ])
+    v_M.prev.minmax <- colSums(m.M.pop_AP[(minage+1):(maxage+1), ] * m_M.CSprev[(minage+1):(maxage+1), ]) / colSums(m.M.pop_AP[(minage+1):(maxage+1), ])
     
     # Calculate prevalence for women
-    v_F.prev.minmax <- colSums(m.F.Pop_AP[(minage+1):(maxage+1), ] * m_F.CSprev[(minage+1):(maxage+1), ]) / colSums(m.F.Pop_AP[(minage+1):(maxage+1), ])
+    v_F.prev.minmax <- colSums(m.F.pop_AP[(minage+1):(maxage+1), ] * m_F.CSprev[(minage+1):(maxage+1), ]) / colSums(m.F.pop_AP[(minage+1):(maxage+1), ])
     
     # Calculate combined prevalence for both men and women
-    v_numerator <- colSums(m.M.Pop_AP[(minage+1):(maxage+1), ] * m_M.CSprev[(minage+1):(maxage+1), ]) + colSums(m.F.Pop_AP[(minage+1):(maxage+1), ] * m_F.CSprev[(minage+1):(maxage+1), ])
-    v_denominator <- colSums(m.M.Pop_AP[(minage+1):(maxage+1), ]) + colSums(m.F.Pop_AP[(minage+1):(maxage+1), ])
+    v_numerator <- colSums(m.M.pop_AP[(minage+1):(maxage+1), ] * m_M.CSprev[(minage+1):(maxage+1), ]) + colSums(m.F.pop_AP[(minage+1):(maxage+1), ] * m_F.CSprev[(minage+1):(maxage+1), ])
+    v_denominator <- colSums(m.M.pop_AP[(minage+1):(maxage+1), ]) + colSums(m.F.pop_AP[(minage+1):(maxage+1), ])
     v_B.prev.minmax <- v_numerator / v_denominator
     
     # Combine data into a single data frame for the current age group
@@ -575,26 +578,26 @@ runstates <- function(fipscode, mla.effect, effect.CI, policy.scen){
   v_B.LYGcum <- cumsum(v_B.LYGyear)
   
   #annual sum SADs averted 
-  v_M.SADsAvertedYear <- l_M.base.mort$v_SADyear - l_M.policy.mort$v_SADyear
-  v_F.SADsAvertedYear <- l_F.base.mort$v_SADyear - l_F.policy.mort$v_SADyear
-  v_B.SADsAvertedYear <- v_M.SADsAvertedYear + v_F.SADsAvertedYear
+  v_M.SADs_averted_year <- l_M.base.mort$v_SADyear - l_M.policy.mort$v_SADyear
+  v_F.SADs_averted_year <- l_F.base.mort$v_SADyear - l_F.policy.mort$v_SADyear
+  v_B.SADs_averted_year <- v_M.SADs_averted_year + v_F.SADs_averted_year
   #cumulative sum SADs averted
-  v_M.SADsAvert_cum <- cumsum(v_M.SADsAvertedYear)
-  v_F.SADsAvert_cum <- cumsum(v_F.SADsAvertedYear)  
-  v_B.SADsAvert_cum <- cumsum(v_B.SADsAvertedYear)
+  v_M.SADs_avert_cum <- cumsum(v_M.SADs_averted_year)
+  v_F.SADs_avert_cum <- cumsum(v_F.SADs_averted_year)  
+  v_B.SADs_avert_cum <- cumsum(v_B.SADs_averted_year)
  
   ##---combine mortality outputs------------------------------------------------------
   m_M.mortout <- cbind(v_M.YLLyear, v_M.YLLcum, v_M.SADyear, v_M.SADcum, 
-                    v_M.LYGyear, v_M.LYGcum, v_M.SADsAvertedYear,
-                    v_M.SADsAvert_cum,1908:2100, 'Male')
+                    v_M.LYGyear, v_M.LYGcum, v_M.SADs_averted_year,
+                    v_M.SADs_avert_cum,1908:2100, 'Male')
   
   m_F.mortout <- cbind(v_F.YLLyear, v_F.YLLcum, v_F.SADyear, v_F.SADcum, 
-                      v_F.LYGyear, v_F.LYGcum, v_F.SADsAvertedYear,
-                      v_F.SADsAvert_cum, 1908:2100, 'Female')
+                      v_F.LYGyear, v_F.LYGcum, v_F.SADs_averted_year,
+                      v_F.SADs_avert_cum, 1908:2100, 'Female')
   
   m_B.mortout <- cbind(v_B.YLLyear, v_B.YLLcum, v_B.SADyear, v_B.SADcum, 
-                      v_B.LYGyear, v_B.LYGcum, v_B.SADsAvertedYear,
-                      v_B.SADsAvert_cum, 1908:2100, 'Both')
+                      v_B.LYGyear, v_B.LYGcum, v_B.SADs_averted_year,
+                      v_B.SADs_avert_cum, 1908:2100, 'Both')
   
   df_mort.outputs <- as.data.frame(rbind(m_M.mortout,m_F.mortout,m_B.mortout))
   colnames(df_mort.outputs) <- c('YLL','YLLcum','SADs', 'SADcum', 'LYG', 'LYGcum',
@@ -607,11 +610,16 @@ runstates <- function(fipscode, mla.effect, effect.CI, policy.scen){
                                                          'SADcum', 'LYG', 'LYGcum', 
                                                          'SADsAverted','SADsAvertedcum',
                                                          'year'), as.numeric))
+
   
-  #-------------- generate TCP tool csv files, if needed--------------------------------
-  #generate_TCPoutput(v_M.SADsAvert_cum, v_F.SADsAvert_cum, v_M.LYGcum, v_F.LYGcum,
-                      # l_M.base.mort, l_F.base.mort, l_M.policy.mort, l_F.policy.mort,
-                      # l_M.base.prev, l_F.base.prev, l_M.policy.prev,l_F.policy.prev)
+#-------------- generate TCP tool csv files, if needed --------------------------------    
+  if (make_tcp_out == 1) {
+    generate_TCPoutput(v_M.SADs_avert_cum, v_F.SADs_avert_cum, v_M.LYGcum, v_F.LYGcum,
+                       l_M.base.mort, l_F.base.mort, l_M.policy.mort, l_F.policy.mort,
+                       l_M.base.prev, l_F.base.prev, l_M.policy.prev, l_F.policy.prev)
+  } else {
+    message("TCP output generation is skipped.")
+  }
                       
   return(list(df_mort.outputs= df_mort.outputs, l_prev_out=l_prev_out, df_CSprevs.by.state=df_CSprevs.by.state ))
    

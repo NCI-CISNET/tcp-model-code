@@ -7,7 +7,7 @@ v_statefips <- c('01','02','04','05','06','08','09','10','11','12','13','15','16
             '44','45','46','47','48','49','50','51','53','54','55','56')
 
 
-v_statefips <- c('06', '25') #for testing 
+#v_statefips <- c('06', '25') #for testing 
 
 # Run model and get prevalence for each state -----------------------------------------------------
 source('03_model_functions.R')
@@ -20,17 +20,17 @@ for (s in v_statefips){
   l_state_scenarios <- list()  # Initialize list for state's scenarios
   print(paste0(fips(s,to="Abbreviation")," (",s,")"))
   #loop through policy scenarios
-  for (p in 1:4){
+  for (p in seq_along(v_policy.scen)){
     l_state_policy_effects <- list()
-    if (p==4){      #baseline scenario
-      print(v_mla.effects[4])
-      df_out=runstates(s, v_mla.effects[4], names(v_mla.effects)[4],v_policy.scen[p])
+    if (p==length(v_policy.scen)){      #baseline scenario
+      print(v_mla.effects[length(v_mla.effects)])
+      df_out=runstates(s, v_mla.effects[length(v_mla.effects)], names(v_mla.effects)[length(v_mla.effects)],v_policy.scen[p])
       df_mortality.out=rbind(df_mortality.out, df_out$df_mort.outputs)
       df_prev.by.state=rbind(df_prev.by.state, df_out$df_CSprevs.by.state)
-      l_state_policy_effects[[names(v_mla.effects)[4]]] <- df_out$l_prev_out
+      l_state_policy_effects[[names(v_mla.effects)[length(v_mla.effects)]]] <- df_out$l_prev_out
     }else{
       # loop through mla effects 
-      for (e in 1:3){
+      for (e in seq_along(v_mla.effects)[-length(v_mla.effects)]) {
         print(v_mla.effects[e])
         df_out=runstates(s, v_mla.effects[e], names(v_mla.effects)[e],v_policy.scen[p])
         df_mortality.out=rbind(df_mortality.out, df_out$df_mort.outputs)
@@ -83,6 +83,6 @@ for (s in v_statefips){
 
 # Save outputs
 save(df_mortality.out, df_tiered_mort, df_mort.policy, df_mort.base,
-     df_prev.by.state, l_combined_state_prev, file=paste0('../output/model_output_', date_variable, '.RData'))
+     df_prev.by.state, l_combined_state_prev, file=paste0('output/model_output_', date_variable, '.RData'))
 
 source('04_visualization.R')
