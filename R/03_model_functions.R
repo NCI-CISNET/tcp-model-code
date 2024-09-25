@@ -396,7 +396,6 @@ runstates <- function(fipscode, mla.effect, effect.CI, policy.scen){
   }
 
   ## MAKE POLICY COVERAGE MATRIX     
-  v_policy.ages <- c(18:20)
   if (policy.scen == 'baseline') {
     v_policycoverage <- (rep(0,293)) #293 -> length(startbc:endyear)
   } else {
@@ -412,7 +411,7 @@ runstates <- function(fipscode, mla.effect, effect.CI, policy.scen){
   }
   
 
-#----------- DETERMINE POLICY DECAY SCENARIO BASED ON IPUT
+#----------- DETERMINE POLICY DECAY SCENARIO BASED ON INPUT
   
   if (policy_decay == 0) {
     ### PRIMARY POLICY SCENARIO, NO DECAY FUNCTION
@@ -624,13 +623,3 @@ runstates <- function(fipscode, mla.effect, effect.CI, policy.scen){
   return(list(df_mort.outputs= df_mort.outputs, l_prev_out=l_prev_out, df_CSprevs.by.state=df_CSprevs.by.state ))
    
 }
-  
-  
-  
-  
-  
-  
-  
-  
-  
-

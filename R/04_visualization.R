@@ -1,9 +1,6 @@
-## Functions to generate the figures used the in the manuscript 
+## Functions to generate the figures used in the manuscript 
 ## 'US Tobacco 21 policies and potential mortality reductions by state'
-library(ggplot2)
-library(grid)  # For textGrob, if needed
 labellist=c('A.', 'B.', 'C.', 'D.')
-paperfips=c('06','21','25','55')
 
 ##------------------- Smoking Attributable Deaths Averted ---------------------
 SADs_averted_fig <- function(fipscode, labelval) {

@@ -1,21 +1,11 @@
 ### SCRIPT TO LOOP THROUGH ALL US STATES AND RUN MODEL FUNCTIONS
 ### REFORMATS OUTPUTS AND SAVES DATA 
 
-v_statefips <- c('01','02','04','05','06','08','09','10','11','12','13','15','16',
-            '17','18','19','20','21','22','23','24','25','26','27','28','29',
-            '30','31','32','33','34','35','36','37','38','39','40','41','42',
-            '44','45','46','47','48','49','50','51','53','54','55','56')
-
-
-#v_statefips <- c('06', '25') #for testing 
-
 # Run model and get prevalence for each state -----------------------------------------------------
-source('03_model_functions.R')
-
 df_mortality.out <- NULL
 df_prev.by.state <- NULL
 l_combined_state_prev <- list()
-
+t_init=Sys.time()
 for (s in v_statefips){
   l_state_scenarios <- list()  # Initialize list for state's scenarios
   print(paste0(fips(s,to="Abbreviation")," (",s,")"))
@@ -84,5 +74,5 @@ for (s in v_statefips){
 # Save outputs
 save(df_mortality.out, df_tiered_mort, df_mort.policy, df_mort.base,
      df_prev.by.state, l_combined_state_prev, file=paste0('output/model_output_', date_variable, '.RData'))
-
+Sys.time()-t_init
 source('04_visualization.R')
