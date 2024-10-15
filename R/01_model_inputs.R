@@ -28,7 +28,7 @@ load('data/harmonized_tuscps_prevs.Rda') # TUSCPS survey data for model verifica
 ##### policy_decay -> 0/1 default is standard policy effects (no exponential decay) =0 
 ##### make_tcp_out -> 0/1 default is not to make TCP tool files =0
 policy_decay <- 0
-make_tcp_out <- 1
+make_tcp_out <- 0
 
 
 #other model inputs
@@ -54,7 +54,7 @@ v_statefips <- c('01','02','04','05','06','08','09','10','11','12','13','15','16
                  '44','45','46','47','48','49','50','51','53','54','55','56')
 
 # vector of states to generate main manuscript figures for
-paperfips=c('06','21','25','55') # CA, KY, MA, WI 
+#paperfips=c('06','21','25','55') # CA, KY, MA, WI 
 
 #-- run the model looping through all states -------------------------------------
 source('R/02_model_functions.R')
