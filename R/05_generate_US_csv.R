@@ -251,7 +251,7 @@ for (policy in policy_scenarios) {
     
     resultsfile <- resultsfile_temp %>%
       select('year', 'age', 'cohort', 'national_male_prevalence_baseline',
-             'national_male_prevalence_policy', 'national_female_prevalence_baseline',
+            'national_female_prevalence_baseline','national_male_prevalence_policy',
              'national_female_prevalence_policy', 'combined_prevalence_baseline', 
              'combined_prevalence_policy')
     
