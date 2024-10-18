@@ -43,12 +43,11 @@ The variables are:
 the [tobacco control policy (TCP) tool](https://tobaccopolicyeffects.org). A value of 1 will generate the .csv files.
 File generation is not necessary unless you are working on TCP tool website development. 
 
-
-**02_main_analysis.R**
-*	runs the TCP model, loops through every state and saves the prevalence and mortality outputs.
-
-**03_model_functions.R**
+**02_model_functions.R**
 *	contains all TCP model functions; generate_prevs(), calculate_mort(), runstates(), and generate_TCPoutput() functions.
+  
+**03_main_analysis.R**
+*	runs the TCP model, loops through every state and saves the prevalence and mortality outputs.
  
 **04_visualization.R**
 *	Contains the functions to plot the figures included in the manuscript.
