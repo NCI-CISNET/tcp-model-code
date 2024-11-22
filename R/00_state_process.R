@@ -3,13 +3,21 @@
 ## census population data, mortality probabilities, US policy coverage,
 ##and smoking initiation/cessation probabilities
 
-mainDir <- "/Users/ac3456/Dropbox/state_tcp_tool/LC_code/TCP_model/"
+mainDir <- "C:/Users/JT936/Dropbox/GitHub/tcp-model-code/"
 setwd(file.path(mainDir))
 
 library(reshape2)
 library(readr)
 library(readxl)
 library(cdlTools)
+library(openxlsx)
+library(haven)
+library(dplyr)
+library(stringr)
+library(lubridate)
+library(ggplot2)
+library(ggrepel)
+
 v_statefips=c('01','02','04','05','06','08','09',10:13,15:42,44:51,53:56)
 startbc <- 1908   # starting birth cohort 
 endbc <- 2100     # ending birth cohort
@@ -352,6 +360,113 @@ for (f in v_statefips){
        file=paste0("data/state_inputs/smk_",f,".RData"))
   print(Sys.time() - t_init) # End timer
 }
+#--------- State policy coverage -----------------------------------------------
+
+# Load in state T21 policy data from Tobacco21.org
+df_T21_state <- read.xlsx("data-raw/T21policycoverage.xlsx",sheet="Tobacco21.org",colNames=TRUE)
+df_T21_state$t21statepolicy <- 1 
+df_T21_state$abbrev <- fips(df_T21_state$statename, to="Abbreviation")
+
+# Use Vander Woude's updated dataset
+df_vw_county <- read_dta("data-raw/T21_20240613.dta")
+df_vw_county$statefips <- substr(df_vw_county$cfips, 1, 2)
+df_vw_county$statename <- fips(df_vw_county$statefips, to="Name")
+df_vw_county$countypercentcovered <- df_vw_county$pctcovered_county
+df_vw_county$countypercentcovered[df_vw_county$countypercentcovered>1]<-1 # replace values where percent is greater than 1 (n=24)
+df_vw_county$countypopcovered <- df_vw_county$cpopestimate*(df_vw_county$countypercentcovered) # change 0%-100% to 0-1
+
+# Aggregate by state, month, year. Then summarize within groups.
+df_vw_state <- df_vw_county %>% 
+  group_by(statename, month, year) %>% 
+  summarize(statepopcovered = sum(countypopcovered),statepoptotal = sum(cpopestimate))
+df_vw_state$statepercentcovered = (df_vw_state$statepopcovered / df_vw_state$statepoptotal)
+df_vw_state <- subset(df_vw_state,year>=2005)
+
+# add empty rows for 2023-2025
+df_t21data2005.2025 <- as.data.frame(df_vw_state)
+for (s in v_statefips){
+  for (m in 1:12){
+    for (y in 2023:2025){ 
+      newrow=c(fips(s,to="Name"),m,y,NA, NA,NA)
+      df_t21data2005.2025<-rbind(df_t21data2005.2025,newrow)
+    }
+  }
+}
+df_t21data2005.2025$month<-as.numeric(df_t21data2005.2025$month)
+df_t21data2005.2025$year<-as.numeric(df_t21data2005.2025$year)
+df_t21data2005.2025$statepercentcovered<-as.numeric(df_t21data2005.2025$statepercentcovered) 
+
+# Now combine this with the state Tobacco21.org data
+df_t21data2005.2025 = merge(df_t21data2005.2025,df_T21_state,by=c("month","year","statename"),all.x=TRUE,all.y=TRUE)
+# Convert State FIPS code to State abbreviation
+df_t21data2005.2025$statefips = fips(df_t21data2005.2025$statename, to="FIPS")
+df_t21data2005.2025$statefips0 = str_pad(df_t21data2005.2025$statefips, width = 2, pad = "0")
+df_t21data2005.2025$stateabbrev = fips(df_t21data2005.2025$statefips, to="Abbreviation")
+# Add leading zeros to dates
+df_t21data2005.2025$month0=str_pad(df_t21data2005.2025$month, width = 2, pad = "0")
+df_t21data2005.2025$day0=str_pad(df_t21data2005.2025$day, width = 2, pad = "0")
+# Transform to year.month.day for x-axis plotting
+df_t21data2005.2025$date = ym(paste0(df_t21data2005.2025$year,df_t21data2005.2025$month0))
+# Create empty columns for policy coverage under different coverage scenarios
+df_t21data2005.2025$local <- df_t21data2005.2025$statelocal <- df_t21data2005.2025$fedstatelocal <- NA
+
+# create vector of dates to loop through
+st <- ymd("2005-01-01")
+en <- ymd("2025-12-01")
+months.2005.2025 <- st %m+% months(seq(0, round(interval(st, en) / months(1)), 1))
+
+# assign percent covered at local, state+local, and federal+state+local levels
+for (s in v_statefips){
+  # t = 1, so Jan 2014
+  startdate = df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
+                                 df_t21data2005.2025$date==months.2005.2025[1],]
+  df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
+                     df_t21data2005.2025$date==months.2005.2025[1],]$local <-startdate$statepercentcovered
+  df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
+                     df_t21data2005.2025$date==months.2005.2025[1],]$statelocal <-startdate$statepercentcovered
+  for (t in 2:length(months.2005.2025)){
+    # get t21 coverage from previous month
+    before = df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
+                                df_t21data2005.2025$date==months.2005.2025[t-1],]
+    now = df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
+                             df_t21data2005.2025$date==months.2005.2025[t],]
+    if (is.na(now$t21statepolicy)&is.na(now$statepercentcovered)){  #  if no data for state or local t21, use local data from previous period
+      df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
+                         df_t21data2005.2025$date==months.2005.2025[t],]$local <-before$local
+      df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
+                         df_t21data2005.2025$date==months.2005.2025[t],]$statelocal <-before$statelocal
+    } else if (!is.na(now$t21statepolicy)){ # if statewide t21, use previous statepercentcovered for local, and 1 for statelocal
+      df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
+                         df_t21data2005.2025$date==months.2005.2025[t],]$local <-before$local
+      df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
+                         df_t21data2005.2025$date==months.2005.2025[t],]$statelocal <-now$t21statepolicy
+      
+    } else if (is.na(now$t21statepolicy)&!is.na(now$statepercentcovered)){
+      if (now$statepercentcovered==1){
+        # if local t21 only, use local data
+        df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
+                           df_t21data2005.2025$date==months.2005.2025[t],]$local <-before$local
+        df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
+                           df_t21data2005.2025$date==months.2005.2025[t],]$statelocal <-now$statepercentcovered
+      } else { # , keep local data only for local scenario
+        df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
+                           df_t21data2005.2025$date==months.2005.2025[t],]$local <-now$statepercentcovered
+        df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
+                           df_t21data2005.2025$date==months.2005.2025[t],]$statelocal <-now$statepercentcovered
+      }
+    }
+  }
+}
+
+df_t21data2005.2025$fedstatelocal <- df_t21data2005.2025$statelocal # same state/local coverage pre-federal T21
+df_t21data2005.2025[df_t21data2005.2025$date>= as.Date('2019-12-01'),]$fedstatelocal <-1 # federal T21 
+
+df_t21data2005.2025 <- df_t21data2005.2025[order(df_t21data2005.2025$statefips, df_t21data2005.2025$date),]
+df_t21data2005.2025$fipscode0=str_pad(df_t21data2005.2025$statefips, width = 2, pad = "0")
+
+save(df_t21data2005.2025,file="data/T21policycoverage2005.2025.Rda")
+
+load("data/T21policycoverage2005.2025.Rda")
 
 #--------- US policy coverage -----------------------------------------------
 
@@ -372,28 +487,26 @@ USstatetotals <- rbind(USstatetotals, data_2024)
 statetotals <- subset(USstatetotals,year>=2014 & statename!="United States")
 ustotals <- subset(USstatetotals,year>=2014 & statename=="United States")
 
-
-t21data2003.2024 = merge(statetotals,t21data2003.2024,by = c('statename','year'),all = TRUE)
+df_t21data2005.2025 = merge(statetotals,df_t21data2005.2025,by = c('statename','year'),all = TRUE)
 
 # number of people covered by T21 in each state 2014-2023
-t21data2003.2024$fedstatelocal_covered = t21data2003.2024$fedstatelocal*t21data2003.2024$statepop
-t21data2003.2024$statelocal_covered = t21data2003.2024$statelocal*t21data2003.2024$statepop
-t21data2003.2024$local_covered = t21data2003.2024$local*t21data2003.2024$statepop
+df_t21data2005.2025$fedstatelocal_covered = df_t21data2005.2025$fedstatelocal*df_t21data2005.2025$statepop
+df_t21data2005.2025$statelocal_covered = df_t21data2005.2025$statelocal*df_t21data2005.2025$statepop
+df_t21data2005.2025$local_covered = df_t21data2005.2025$local*df_t21data2005.2025$statepop
 
 # Aggregate by month, year across all states
-us_t21coverage <- t21data2003.2024 %>% 
+df_us_t21coverage <- df_t21data2005.2025 %>% 
   group_by(month, year) %>% 
   summarize(us_fsl_covered = sum(fedstatelocal_covered),us_sl_covered = sum(statelocal_covered),us_l_covered = sum(local_covered))
 
-us_t21coverage <- merge(us_t21coverage,ustotals, by=c('year'))
-us_t21coverage$fedstatelocal = (us_t21coverage$us_fsl_covered / us_t21coverage$statepop)
-us_t21coverage$statelocal = (us_t21coverage$us_sl_covered / us_t21coverage$statepop)
-us_t21coverage$local = (us_t21coverage$us_l_covered / us_t21coverage$statepop)
-us_t21coverage$day=1
-us_t21coverage$Date <- as.Date(with(us_t21coverage,paste(year,month,day,sep="-")),"%Y-%m-%d")
+df_us_t21coverage <- merge(df_us_t21coverage,ustotals, by=c('year'))
+df_us_t21coverage$fedstatelocal = (df_us_t21coverage$us_fsl_covered / df_us_t21coverage$statepop)
+df_us_t21coverage$statelocal = (df_us_t21coverage$us_sl_covered / df_us_t21coverage$statepop)
+df_us_t21coverage$local = (df_us_t21coverage$us_l_covered / df_us_t21coverage$statepop)
+df_us_t21coverage$day=1
+df_us_t21coverage$Date <- as.Date(with(df_us_t21coverage,paste(year,month,day,sep="-")),"%Y-%m-%d")
 
-save(us_t21coverage, file = "data/us_t21coverage.RData")
-
+save(df_us_t21coverage, file = "data/us_t21coverage.RData")
 
 ## Sources:
 # Surveillance Epidemiology and End Results (SEER) Program. Standard Populations - Single Ages. Accessed 2/19/2024, 2024. https://seer.cancer.gov/stdpopulations/stdpop.singleages.html
