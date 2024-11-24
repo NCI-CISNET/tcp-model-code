@@ -3,7 +3,7 @@
 ## census population data, mortality probabilities, US policy coverage,
 ##and smoking initiation/cessation probabilities
 
-mainDir <- "C:/Users/JT936/Dropbox/GitHub/tcp-model-code/"
+mainDir <- "/Users/JT936/Dropbox/GitHub/tcp-model-code/"
 setwd(file.path(mainDir))
 
 library(reshape2)
@@ -464,6 +464,12 @@ df_t21data2005.2025[df_t21data2005.2025$date>= as.Date('2019-12-01'),]$fedstatel
 
 df_t21data2005.2025 <- df_t21data2005.2025[order(df_t21data2005.2025$statefips, df_t21data2005.2025$date),]
 df_t21data2005.2025$fipscode0=str_pad(df_t21data2005.2025$statefips, width = 2, pad = "0")
+
+# North Dakota T21 was technically implemented on 4/1/21 and not 3/1/21 
+df_t21data2005.2025$statelocal[df_t21data2005.2025$stateabbrev=="ND"&df_t21data2005.2025$month==3&df_t21data2005.2025$year==2021] <- 0
+
+# Nebraska T21 was technically implemented on 10/1/20 and not 8/15/20
+df_t21data2005.2025$statelocal[df_t21data2005.2025$stateabbrev=="NE"&df_t21data2005.2025$month<10&df_t21data2005.2025$year==2020] <- 0
 
 save(df_t21data2005.2025,file="data/T21policycoverage2005.2025.Rda")
 
