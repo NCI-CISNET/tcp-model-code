@@ -471,6 +471,11 @@ df_t21data2005.2025$statelocal[df_t21data2005.2025$stateabbrev=="ND"&df_t21data2
 # Nebraska T21 was technically implemented on 10/1/20 and not 8/15/20
 df_t21data2005.2025$statelocal[df_t21data2005.2025$stateabbrev=="NE"&df_t21data2005.2025$month<10&df_t21data2005.2025$year==2020] <- 0
 
+# Michigan Local T21 - local coverage goes to 2100
+df_t21data2005.2025$local[df_t21data2005.2025$stateabbrev=="MI"&df_t21data2005.2025$date>'2019-11-01'] <- df_t21data2005.2025$local[df_t21data2005.2025$stateabbrev=="MI"&df_t21data2005.2025$date=='2019-11-01']
+df_t21data2005.2025$statelocal[df_t21data2005.2025$stateabbrev=="MI"&df_t21data2005.2025$date>'2019-11-01'&df_t21data2005.2025$date<'2022-7-01'] <- df_t21data2005.2025$statelocal[df_t21data2005.2025$stateabbrev=="MI"&df_t21data2005.2025$date=='2019-11-01']
+
+
 save(df_t21data2005.2025,file="data/T21policycoverage2005.2025.Rda")
 
 load("data/T21policycoverage2005.2025.Rda")
