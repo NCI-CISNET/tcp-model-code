@@ -298,7 +298,7 @@ generate_TCPoutput <- function(v_M.SADs_avert_cum, v_F.SADs_avert_cum, v_M.LYGcu
   }
 
   # Define age groups and corresponding age ranges
-  agegroups <- c('12-17', '18-24', '25-44', '45-64', '65+', '18-99')
+  agegroups <- c('12-17', '18-24', '25-44', '45-64', '65p', '18-99')
   agel <- c(12, 18, 25, 45, 65, 18)
   ageu <- c(17, 24, 44, 64, 99, 99)
 
@@ -401,17 +401,16 @@ runstates <- function(fipscode, mla.effect, effect.CI, policy.scen){
   if (policy.scen == 'baseline') {
     v_policycoverage <- (rep(0,293)) #293 -> length(startbc:endyear)
   } else {
-    v_policycoverage <- subset(df_t21data2003.2024, statefips0 == fipscode & month == '1')[, policy.scen]
+    v_policycoverage <- subset(df_t21data2005.2025, statefips0 == fipscode & month == '1')[, policy.scen]
     v_policycoverage[is.na(v_policycoverage)] <- 0
-    dec2024 <- v_policycoverage[length(v_policycoverage)]
+    dec2025 <- v_policycoverage[length(v_policycoverage)]
     # Create the complete policy coverage vector
     v_policycoverage <- c(
-      rep(0, 2003 - startbc),        # Zeros for years 1908-2002
-      v_policycoverage,              # Values for years 2003-2024
-      rep(dec2024, endyear - 2024)   # Replicate 2024 value for years 2025-2100
+      rep(0, 2005 - startbc),        # Zeros for years 1908-2002
+      v_policycoverage,              # Values for years 2005-2025
+      rep(dec2025, endyear - 2025)   # Replicate 2024 value for years 2025-2100
     )
   }
-  
 
 #----------- DETERMINE POLICY DECAY SCENARIO BASED ON IPUT
   
