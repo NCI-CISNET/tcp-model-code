@@ -74,7 +74,7 @@ for (s in v_statefips){
 
 # # Save outputs
 save(df_mortality.out, df_tiered_mort, df_mort.policy, df_mort.base,
-     df_prev.by.state, l_combined_state_prev, file=paste0('output/model_output', date_variable, '.RData'))
+     df_prev.by.state, l_combined_state_prev, file=paste0('output/model_output_', date_variable, '.RData'))
 
 Sys.time()-t_init
-source('04_visualization.R')
+#source('04_visualization.R')
