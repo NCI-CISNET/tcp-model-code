@@ -2,7 +2,10 @@
 
 
 dir <- "/Users/ac3456/Dropbox/state_tcp_tool/LC_code/TCP_model/source_data" 
-load('output/model_output10.14.24.RData')
+load('output/model_output_12.12.24.RData') #### whatever dataset you want to load
+
+
+
 v_statefips <- c('01','02','04','05','06','08','09','10','11','12','13','15','16',
                  '17','18','19','20','21','22','23','24','25','26','27','28','29',
                  '30','31','32','33','34','35','36','37','38','39','40','41','42',
@@ -26,6 +29,7 @@ cohyears <- endbc-startbc+1     # number of cohort years
 # Set output directories for deaths and LYG
 us_deaths_dir <- file.path(dir, "US", "t21", "deaths")
 us_lyg_dir <- file.path(dir, "US", "t21", "lyg")
+us_res_dir <- file.path(dir, "US", "t21", "results")
 
 # Ensure the output directories exist
 if (!dir.exists(us_deaths_dir)) {
@@ -35,6 +39,10 @@ if (!dir.exists(us_deaths_dir)) {
 if (!dir.exists(us_lyg_dir)) {
   dir.create(us_lyg_dir, recursive = TRUE)
 }
+
+if (!dir.exists(us_res_dir)) {
+  dir.create(us_res_dir, recursive = TRUE)
+}  
 
 # List of all state directories (excluding the 'US' folder)
 state_dirs <- list.dirs(dir, full.names = TRUE, recursive = FALSE)
