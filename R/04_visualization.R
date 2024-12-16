@@ -78,16 +78,16 @@ ggarrange(LYG_manuscript(paperfips[1],labellist[1]),LYG_manuscript(paperfips[2],
 dev.off()
 
 #---------------- Policy Coverage Timeline -------------------------------------
-df_t21data2003.2024[is.na(df_t21data2003.2024$local), 'local']<-0
-df_t21data2003.2024[is.na(df_t21data2003.2024$statelocal), 'statelocal']<-0
-df_t21data2003.2024[is.na(df_t21data2003.2024$fedstatelocal), 'fedstatelocal']<-0
+df_t21data2005.2025[is.na(df_t21data2005.2025$local), 'local']<-0
+df_t21data2005.2025[is.na(df_t21data2005.2025$statelocal), 'statelocal']<-0
+df_t21data2005.2025[is.na(df_t21data2005.2025$fedstatelocal), 'fedstatelocal']<-0
 
 
 plot_policy_cover<- function(s,labelval){
-  thisstate <- subset(df_t21data2003.2024, statefips0==s)
+  thisstate <- subset(df_t21data2005.2025, statefips0==s)
   stateT21date <- subset(thisstate,t21statepolicy==1)$date
-  stateT21 <- subset(thisstate,date=="2024-01-01")$statelocal
-  localT21 <- subset(thisstate,date=="2024-01-01")$local
+  stateT21 <- subset(thisstate,date=="2025-01-01")$statelocal
+  localT21 <- subset(thisstate,date=="2025-01-01")$local
   
   plot<- ggplot(data=thisstate)+
     geom_line(aes(x=date, y =fedstatelocal*100))+
@@ -186,7 +186,7 @@ plotUS <- ggplot(data=us_t21coverage) +
   )
 
 
-pdf(file="figs/US_T21policycoverage_2003.2024.pdf", width=8,height = 6,onefile=TRUE)
+pdf(file="figs/US_T21policycoverage_2005.2025.pdf", width=8,height = 6,onefile=TRUE)
 print(plotUS)
 dev.off()
 
