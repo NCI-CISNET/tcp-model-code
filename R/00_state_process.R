@@ -30,8 +30,8 @@ for (fipscodeval in v_statefips){
   colnames(df_M.NS.LE)=colnames(df_F.NS.LE)=c('fips', 'age', 'bc', 'abbr', 'life_exp', 'sex', 'status')
   
   # Subset to years 1908–2100 only
-  df_M.NS.LE = subset(df_M.NS.LE, bc >= 1908 & bc <= 2100 & fips == as.numeric(fipscodeval))
-  df_F.NS.LE = subset(df_F.NS.LE, bc >= 1908 & bc <= 2100 & fips == as.numeric(fipscodeval))
+  df_M.NS.LE = subset(df_M.NS.LE, bc >= startbc & bc <= endbc & fips == as.numeric(fipscodeval))
+  df_F.NS.LE = subset(df_F.NS.LE, bc >= startbc & bc <= endbc & fips == as.numeric(fipscodeval))
   
   # Subset Life expectancy by state
   df_M.NS.LE=subset(df_M.NS.LE, fips==as.numeric(fipscodeval))
@@ -195,7 +195,7 @@ for (f in v_statefips){
   for (i in calstart:endyear){
     for (age in 0:99){
       byr=i-age
-      if(byr<1908){
+      if(byr<calstart){
         m_M.mortNS_AP[age+1,i-(calstart-1)]=m_M.mortNS_AC[(m_M.mortNS_AC[,1]==datastart)&(m_M.mortNS_AC[,2]==age),5]
         m_M.mortCS_AP[age+1,i-(calstart-1)]=m_M.mortCS_AC[(m_M.mortCS_AC[,1]==datastart)&(m_M.mortCS_AC[,2]==age),5]
         m_M.mortFS_AP[age+1,i-(calstart-1)]=m_M.mortFS_AC[(m_M.mortFS_AC[,1]==datastart)&(m_M.mortFS_AC[,2]==age),5]
@@ -213,7 +213,7 @@ for (f in v_statefips){
       }
       
       for (j in 1:40){
-        if(byr<1908){
+        if(byr<calstart){
           a_M.mortYSQ_AP[age+1,i-(calstart-1),j]=a_M.mortYSQ_AC[(a_M.mortYSQ_AC[,1,j]==datastart)&(a_M.mortYSQ_AC[,2,j]==age),5,j]
           a_F.mortYSQ_AP[age+1,i-(calstart-1),j]=a_F.mortYSQ_AC[(a_F.mortYSQ_AC[,1,j]==datastart)&(a_F.mortYSQ_AC[,2,j]==age),5,j]}
         else{
