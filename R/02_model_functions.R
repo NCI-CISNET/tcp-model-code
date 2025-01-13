@@ -120,7 +120,6 @@ calculate_mort<-function(l_pop_outputs, m_p_mortNS_AP, m_p_mortCS_AP,
   df_SAD_AP <- as.data.frame(m_SAD_AP)
   
   # Set all SADs before 2025 birth cohort (column 78) to NA
-  policycohort <- 2005 # first birth cohort affected by T21 in the year 2025 is 2005
   df_SAD_AP[,1:(policycohort-startbc)]<-0
   for (c in (policycohort-startbc+1):ncol(df_SAD_AP)){
     for (r in 1:nrow(df_SAD_AP)){
@@ -348,15 +347,15 @@ run_model <- function(mla.effect, name){
   ##---combine mortality outputs------------------------------------------------------
   m_M.mortout <- cbind(v_M.YLLyear, v_M.cYLL, v_M.SADyear, v_M.cSAD, 
                     v_M.LYGyear, v_M.cLYG, v_M.SADs_averted,
-                    v_M.cSADs_averted,1908:2100, 'Men')
+                    v_M.cSADs_averted,startbc:endbc, 'Men')
   
   m_F.mortout <- cbind(v_F.YLLyear, v_F.cYLL, v_F.SADyear, v_F.cSAD, 
                       v_F.LYGyear, v_F.cLYG, v_F.SADs_averted,
-                      v_F.cSADs_averted, 1908:2100, 'Women')
+                      v_F.cSADs_averted, startbc:endbc, 'Women')
   
   m_B.mortout <- cbind(v_B.YLLyear, v_B.cYLL, v_B.SADyear, v_B.cSAD, 
                       v_B.LYGyear, v_B.cLYG, v_B.SADs_averted,
-                      v_B.cSADs_averted, 1908:2100, 'Both')
+                      v_B.cSADs_averted, startbc:endbc, 'Both')
   
   df_mort.outputs <- as.data.frame(rbind(m_M.mortout,m_F.mortout,m_B.mortout))
   colnames(df_mort.outputs) <- c('YLL','cYLL','SADs', 'cSAD', 'LYG', 'cLYG',
