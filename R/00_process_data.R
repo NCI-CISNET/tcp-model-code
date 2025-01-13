@@ -20,6 +20,7 @@ library(ggrepel)
 v_statefips=c('01')
 startbc <- 1908   # starting birth cohort 
 endbc <- 2100     # ending birth cohort
+numyears<-endbc-startbc+1
 
 # Life expectancy data ----------------------------------------------------
 for (fipscodeval in v_statefips){
@@ -30,17 +31,17 @@ for (fipscodeval in v_statefips){
   colnames(df_M.NS.LE)=colnames(df_F.NS.LE)=c('fips', 'age', 'bc', 'abbr', 'life_exp', 'sex', 'status')
   
   # Subset to years 1908–2100 only
-  df_M.NS.LE = subset(df_M.NS.LE, bc >= 1908 & bc <= 2100 & fips == as.numeric(fipscodeval))
-  df_F.NS.LE = subset(df_F.NS.LE, bc >= 1908 & bc <= 2100 & fips == as.numeric(fipscodeval))
+  df_M.NS.LE = subset(df_M.NS.LE, bc >= startbc & bc <= endbc & fips == as.numeric(fipscodeval))
+  df_F.NS.LE = subset(df_F.NS.LE, bc >= startbc & bc <= endbc & fips == as.numeric(fipscodeval))
   
   # Subset Life expectancy by state
   df_M.NS.LE=subset(df_M.NS.LE, fips==as.numeric(fipscodeval))
   v_M.NS.LE=df_M.NS.LE$life_exp
-  m_M.NS.LE=array(v_M.NS.LE, dim=c(100,193))
+  m_M.NS.LE=array(v_M.NS.LE, dim=c(100,numyears))
   
   df_F.NS.LE=subset(df_F.NS.LE, fips==as.numeric(fipscodeval))
   v_F.NS.LE=df_F.NS.LE$life_exp
-  m_F.NS.LE=array(v_F.NS.LE, dim=c(100,193))
+  m_F.NS.LE=array(v_F.NS.LE, dim=c(100,numyears))
   
   
   save(m_M.NS.LE,m_F.NS.LE,file=paste0("data/state_inputs/le_",fipscodeval,".RData"))
@@ -116,37 +117,37 @@ for (f in v_statefips){
   
   # extend data to 2100 keep mortality fixed after 2050
   MNSsubset=subset(df_M.StatemortNS, birth_year==max(df_M.StatemortNS$birth_year))
-  for (i in (max(df_M.StatemortNS$birth_year)+1):2100){
+  for (i in (max(df_M.StatemortNS$birth_year)+1):endbc){
     MNSsubset[MNSsubset==i-1]=i
     df_M.StatemortNS=rbind(df_M.StatemortNS,MNSsubset)
   }
   
   MCSsubset=subset(df_M.StatemortCS, birth_year==max(df_M.StatemortCS$birth_year))
-  for (i in (max(df_M.StatemortCS$birth_year)+1):2100){
+  for (i in (max(df_M.StatemortCS$birth_year)+1):endbc){
     MCSsubset[MCSsubset==i-1]=i
     df_M.StatemortCS=rbind(df_M.StatemortCS,MCSsubset)
   }
   
   MFSsubset=subset(df_M.StatemortFS, birth_year==max(df_M.StatemortFS$birth_year))
-  for (i in (max(df_M.StatemortFS$birth_year)+1):2100){
+  for (i in (max(df_M.StatemortFS$birth_year)+1):endbc){
     MFSsubset[MFSsubset==i-1]=i
     df_M.StatemortFS=rbind(df_M.StatemortFS,MFSsubset)
   }
   
   FNSsubset=subset(df_F.StatemortNS, birth_year==max(df_F.StatemortNS$birth_year))
-  for (i in (max(df_F.StatemortNS$birth_year)+1):2100){
+  for (i in (max(df_F.StatemortNS$birth_year)+1):endbc){
     FNSsubset[FNSsubset==i-1]=i
     df_F.StatemortNS=rbind(df_F.StatemortNS,FNSsubset)
   }
   
   FCSsubset=subset(df_F.StatemortCS, birth_year==max(df_F.StatemortCS$birth_year))
-  for (i in (max(df_F.StatemortCS$birth_year)+1):2100){
+  for (i in (max(df_F.StatemortCS$birth_year)+1):endbc){
     FCSsubset[FCSsubset==i-1]=i
     df_F.StatemortCS=rbind(df_F.StatemortCS,FCSsubset)
   }
   
   FFSsubset=subset(df_F.StatemortFS, birth_year==max(df_F.StatemortFS$birth_year))
-  for (i in (max(df_F.StatemortFS$birth_year)+1):2100){
+  for (i in (max(df_F.StatemortFS$birth_year)+1):endbc){
     FFSsubset[FFSsubset==i-1]=i
     df_F.StatemortFS=rbind(df_F.StatemortFS,FFSsubset)
   }
@@ -178,7 +179,7 @@ for (f in v_statefips){
   }
   ######Calculate mortality by calender year #####################################
 
-  colyears=2100-1908+1
+  colyears=endbc-startbc+1
   m_M.mortNS_AP=matrix(NA,nrow=100,ncol=colyears)
   m_M.mortCS_AP=matrix(NA,nrow=100,ncol=colyears)
   m_M.mortFS_AP=matrix(NA,nrow=100,ncol=colyears)
@@ -195,7 +196,7 @@ for (f in v_statefips){
   for (i in calstart:endyear){
     for (age in 0:99){
       byr=i-age
-      if(byr<1908){
+      if(byr<calstart){
         m_M.mortNS_AP[age+1,i-(calstart-1)]=m_M.mortNS_AC[(m_M.mortNS_AC[,1]==datastart)&(m_M.mortNS_AC[,2]==age),5]
         m_M.mortCS_AP[age+1,i-(calstart-1)]=m_M.mortCS_AC[(m_M.mortCS_AC[,1]==datastart)&(m_M.mortCS_AC[,2]==age),5]
         m_M.mortFS_AP[age+1,i-(calstart-1)]=m_M.mortFS_AC[(m_M.mortFS_AC[,1]==datastart)&(m_M.mortFS_AC[,2]==age),5]
@@ -213,7 +214,7 @@ for (f in v_statefips){
       }
       
       for (j in 1:40){
-        if(byr<1908){
+        if(byr<calstart){
           a_M.mortYSQ_AP[age+1,i-(calstart-1),j]=a_M.mortYSQ_AC[(a_M.mortYSQ_AC[,1,j]==datastart)&(a_M.mortYSQ_AC[,2,j]==age),5,j]
           a_F.mortYSQ_AP[age+1,i-(calstart-1),j]=a_F.mortYSQ_AC[(a_F.mortYSQ_AC[,1,j]==datastart)&(a_F.mortYSQ_AC[,2,j]==age),5,j]}
         else{
