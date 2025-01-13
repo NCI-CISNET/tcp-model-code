@@ -38,6 +38,7 @@ date_variable <- format(Sys.Date(), "%m.%d.%y")
 startbc <- 1908   # starting birth cohort 
 endbc <- 2100     # ending birth cohort
 endyear <- 2200   # final calendar year, extra 100 years needed for AC-AP conversion
+policycohort <- 1985 # first birth cohort affected by T21 in the year 2005 is 1985
 policyyear=2005   # policy year, NA for T21 analysis
 cohyears <- endbc-startbc+1     # number of cohort years
 v_calyears <- (startbc-startbc+1):(endbc-startbc+1)  # index of calendar years 1908-2100
