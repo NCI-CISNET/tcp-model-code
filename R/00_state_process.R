@@ -20,6 +20,7 @@ library(ggrepel)
 v_statefips=c('01','02','04','05','06','08','09',10:13,15:42,44:51,53:56)
 startbc <- 1908   # starting birth cohort 
 endbc <- 2100     # ending birth cohort
+cohyears <- endbc-startbc+1
 
 # Life expectancy data ----------------------------------------------------
 for (fipscodeval in v_statefips){
@@ -36,11 +37,11 @@ for (fipscodeval in v_statefips){
   # Subset Life expectancy by state
   df_M.NS.LE=subset(df_M.NS.LE, fips==as.numeric(fipscodeval))
   v_M.NS.LE=df_M.NS.LE$life_exp
-  m_M.NS.LE=array(v_M.NS.LE, dim=c(100,193))
+  m_M.NS.LE=array(v_M.NS.LE, dim=c(100,cohyears))
   
   df_F.NS.LE=subset(df_F.NS.LE, fips==as.numeric(fipscodeval))
   v_F.NS.LE=df_F.NS.LE$life_exp
-  m_F.NS.LE=array(v_F.NS.LE, dim=c(100,193))
+  m_F.NS.LE=array(v_F.NS.LE, dim=c(100,cohyears))
   
   
   save(m_M.NS.LE,m_F.NS.LE,file=paste0("data/state_inputs/le_",fipscodeval,".RData"))
