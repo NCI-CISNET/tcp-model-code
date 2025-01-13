@@ -110,7 +110,7 @@ generate_prevs <- function(startbc, gender, m_init.policy_AC, m_cess.policy_AC, 
 calculate_mort<-function(l_prev_outputs, m_p_mortNS_AP, m_p_mortCS_AP, 
                         a_p_mortYSQ_AP, m_NS.LE, df_census_data){
   
-  m_popdist<- as.matrix(cbind(df_census_data,rep(df_census_data[193],100))) #reformatted census data
+  m_popdist<- as.matrix(cbind(df_census_data,rep(df_census_data[cohyears],100))) #reformatted census data
   
   ## Calculate SADs using former smoker mortality probability by years 
   ## since quitting (YSQ) with multiple former smoker compartments
@@ -123,7 +123,6 @@ calculate_mort<-function(l_prev_outputs, m_p_mortNS_AP, m_p_mortCS_AP,
   df_SAD_AP <- as.data.frame(m_SAD_AP)
   
   # Set all SADs before 1985 birth cohort (column 78) to NA
-  policycohort <- 1985 # first birth cohort affected by T21 in the year 2005 is 1985
   df_SAD_AP[,1:(policycohort-startbc)]<-0
   for (c in (policycohort-startbc+1):ncol(df_SAD_AP)){
     for (r in 1:nrow(df_SAD_AP)){
@@ -171,14 +170,14 @@ generate_TCPoutput <- function(v_M.SADs_avert_cum, v_F.SADs_avert_cum, v_M.LYGcu
 
   policyyear='NA'    # NOT APPLICABLE FOR T21 ANALYSIS
 
-  # FILTER DATA FOR ALL COHORTS TO 2005
+  # FILTER DATA FOR ALL COHORTS TO 2005 (policyyear)
   year=startbc:endbc
   df_B.cSADs_averted_all<- as.data.frame(cbind(year, 'ALL', v_M.SADs_avert_cum, v_F.SADs_avert_cum, policyyear))
-  df_B.cSADs_averted_all <- df_B.cSADs_averted_all[df_B.cSADs_averted_all$year >= 2005,]
+  df_B.cSADs_averted_all <- df_B.cSADs_averted_all[df_B.cSADs_averted_all$year >= policyyear,]
   colnames(df_B.cSADs_averted_all)=c('year', 'cohort', 'deaths_avoided_males', 'deaths_avoided_females','policy_year')
 
   df_B.cLYG_all<- as.data.frame(cbind(year, 'ALL', v_M.LYGcum, v_F.LYGcum, policyyear ))
-  df_B.cLYG_all <- df_B.cLYG_all[df_B.cLYG_all$year >= 2005,]
+  df_B.cLYG_all <- df_B.cLYG_all[df_B.cLYG_all$year >= policyyear,]
   colnames(df_B.cLYG_all)=c('year', 'cohort', 'cLYG_males', 'cLYG_females','policy_year')
 
   # WE WANT TO ISOLATE RESULTS FOR SPECIFIC COHORTS
@@ -225,7 +224,7 @@ generate_TCPoutput <- function(v_M.SADs_avert_cum, v_F.SADs_avert_cum, v_M.LYGcu
   deathsfile$policy_year=policyyear
   deathsfile<- deathsfile[, c('year', 'cohort', 'deaths_avoided_males', 'deaths_avoided_females','policy_year', 'age')]
   deathsfile<- deathsfile[,-ncol(deathsfile)]
-  deathsfile <- deathsfile[deathsfile$year >= 2005,]
+  deathsfile <- deathsfile[deathsfile$year >= policyyear,]
   #ADD IN ALL
   deathsfile<-rbind(deathsfile, df_B.cSADs_averted_all)
 
@@ -236,7 +235,7 @@ generate_TCPoutput <- function(v_M.SADs_avert_cum, v_F.SADs_avert_cum, v_M.LYGcu
   lygfile$policy_year=policyyear
   lygfile<- lygfile[, c('year', 'cohort', 'cLYG_males', 'cLYG_females','policy_year', 'age')]
   lygfile<- lygfile[,-ncol(lygfile)]
-  lygfile <- lygfile[lygfile$year >= 2005,]
+  lygfile <- lygfile[lygfile$year >= policyyear,]
   lygfile<- rbind(lygfile, df_B.cLYG_all)
 
   initperc <- signif((mla.effect * 100), digits = 2)
@@ -260,12 +259,12 @@ generate_TCPoutput <- function(v_M.SADs_avert_cum, v_F.SADs_avert_cum, v_M.LYGcu
   #-------------- prevalence outputs ------------------------------------------
   v_cohorts <- c(1990,2000,2010,2020,2030)
   v_agecohorts <- pmin(99,2100-v_cohorts)
-  resultsfile <- data.frame(year=2005,age=0,cohort='NA',males_baseline=0,
+  resultsfile <- data.frame(year=policyyear,age=0,cohort='NA',males_baseline=0,
                             females_baseline=0,males_policy=0,females_policy=0,
                             both_baseline=0,both_policy=0,policy_year=0)
 
   count=1
-  for (year in 2005:2100) {
+  for (year in policyyear:endbc) {
     for (coh in v_cohorts) {
       age <- year - coh
 
@@ -303,7 +302,7 @@ generate_TCPoutput <- function(v_M.SADs_avert_cum, v_F.SADs_avert_cum, v_M.LYGcu
   ageu <- c(17, 24, 44, 64, 99, 99)
 
   # Loop through years and age groups
-  for (year in 2005:2100) {
+  for (year in policyyear:endbc) {
     for (kag in 1:6) {
       # Calculate base prevalence for males and females
       malebaseprev <- sum(l_M.base.prev$m_smokersAP[(agel[kag]:ageu[kag]) + 1, year - startbc + 1]) /
@@ -399,14 +398,14 @@ runstates <- function(fipscode, mla.effect, effect.CI, policy.scen){
 
   ## MAKE POLICY COVERAGE MATRIX     
   if (policy.scen == 'baseline') {
-    v_policycoverage <- (rep(0,293)) #293 -> length(startbc:endyear)
+    v_policycoverage <- (rep(0,totalyears)) 
   } else {
     v_policycoverage <- subset(df_t21data2005.2025, statefips0 == fipscode & month == '1')[, policy.scen]
     v_policycoverage[is.na(v_policycoverage)] <- 0
     dec2025 <- v_policycoverage[length(v_policycoverage)]
     # Create the complete policy coverage vector
     v_policycoverage <- c(
-      rep(0, 2005 - startbc),        # Zeros for years 1908-2002
+      rep(0, policyyear - startbc),        # Zeros for years 1908-2002
       v_policycoverage,              # Values for years 2005-2025
       rep(dec2025, endyear - 2025)   # Replicate 2024 value for years 2025-2100
     )
@@ -422,8 +421,8 @@ runstates <- function(fipscode, mla.effect, effect.CI, policy.scen){
   } else if (policy_decay == 1) {
     ### ALTERNATE SCENARIO, EXPONENTIAL DECAY
     # APPLY AN EXPONENTIAL DECAY TO POLICY EFFECTS STARTING IN 2030
-    m_mla.exp <- matrix(rep(1, 29300), nrow = 100, ncol = 293)
-    for (t in 123:293) { # 2030-2100
+    m_mla.exp <- matrix(rep(1, (totalyears*100), nrow = 100, ncol = totalyears)
+    for (t in 123:totalyears) { # 2030-2100
       for (a in v_policy.ages) {
         m_mla.exp[a, t] <- (1 - 0.2)^(t - 122)
       }
@@ -486,8 +485,8 @@ runstates <- function(fipscode, mla.effect, effect.CI, policy.scen){
     m_F.CSprev <- l_F.policy.prev$m_CSprevAP
     
     # Create population matrices
-    m.M.pop_AP <- as.matrix(cbind(df_M.census_data, rep(df_M.census_data[193], 100))) # Assume constant population sizes in future
-    m.F.pop_AP <- as.matrix(cbind(df_F.census_data, rep(df_F.census_data[193], 100)))
+    m.M.pop_AP <- as.matrix(cbind(df_M.census_data, rep(df_M.census_data[cohyears], 100))) # Assume constant population sizes in future
+    m.F.pop_AP <- as.matrix(cbind(df_F.census_data, rep(df_F.census_data[cohyears], 100)))
     
     # Calculate prevalence for men
     v_M.prev.minmax <- colSums(m.M.pop_AP[(minage+1):(maxage+1), ] * m_M.CSprev[(minage+1):(maxage+1), ]) / colSums(m.M.pop_AP[(minage+1):(maxage+1), ])
@@ -589,15 +588,15 @@ runstates <- function(fipscode, mla.effect, effect.CI, policy.scen){
   ##---combine mortality outputs------------------------------------------------------
   m_M.mortout <- cbind(v_M.YLLyear, v_M.YLLcum, v_M.SADyear, v_M.SADcum, 
                     v_M.LYGyear, v_M.LYGcum, v_M.SADs_averted_year,
-                    v_M.SADs_avert_cum,1908:2100, 'Male')
+                    v_M.SADs_avert_cum,startbc:endbc, 'Male')
   
   m_F.mortout <- cbind(v_F.YLLyear, v_F.YLLcum, v_F.SADyear, v_F.SADcum, 
                       v_F.LYGyear, v_F.LYGcum, v_F.SADs_averted_year,
-                      v_F.SADs_avert_cum, 1908:2100, 'Female')
+                      v_F.SADs_avert_cum,startbc:endbc, 'Female')
   
   m_B.mortout <- cbind(v_B.YLLyear, v_B.YLLcum, v_B.SADyear, v_B.SADcum, 
                       v_B.LYGyear, v_B.LYGcum, v_B.SADs_averted_year,
-                      v_B.SADs_avert_cum, 1908:2100, 'Both')
+                      v_B.SADs_avert_cum, startbc:endbc, 'Both')
   
   df_mort.outputs <- as.data.frame(rbind(m_M.mortout,m_F.mortout,m_B.mortout))
   colnames(df_mort.outputs) <- c('YLL','YLLcum','SADs', 'SADcum', 'LYG', 'LYGcum',
