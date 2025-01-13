@@ -41,6 +41,7 @@ endyear <- 2200   # final calendar year, extra 100 years needed for AC-AP conver
 policycohort <- 1985 # first birth cohort affected by T21 in the year 2005 is 1985
 policyyear=2005   # policy year, NA for T21 analysis
 cohyears <- endbc-startbc+1     # number of cohort years
+totalyears<-length(startbc:endyear)
 v_calyears <- (startbc-startbc+1):(endbc-startbc+1)  # index of calendar years 1908-2100
 v_stdbirths<- rep(1000000, times = 193)    #fixed birthrate/population size for prevalence calculations
 v_mla.effects= c(main=0.3391,upper=0.5266,lower=0.1517,baseline=0)  # main T21 policy effect estimate with upper, lower bounds
