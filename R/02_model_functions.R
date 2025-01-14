@@ -107,7 +107,7 @@ generate_prevs <- function(startbc, gender, m_init.policy_AC, m_cess.policy_AC, 
 calculate_mort<-function(l_pop_outputs, m_p_mortNS_AP, m_p_mortCS_AP, 
                         a_p_mortYSQ_AP, m_NS.LE, df_census_data){
   
-  m_popdist<- as.matrix(cbind(df_census_data,rep(df_census_data[193],100))) #reformatted census data
+  m_popdist<- as.matrix(cbind(df_census_data,rep(df_census_data[cohyears],100))) #reformatted census data
   
   ## Calculate SADs using former smoker mortality probability by years 
   ## since quitting (YSQ) with multiple former smoker compartments
@@ -249,8 +249,8 @@ run_model <- function(mla.effect, name){
     m_F.CSprev <- l_F.policy.prev$m_CSprevAP
     
     # Create population matrices
-    m.M.pop_AP <- as.matrix(cbind(df_M.census_data, rep(df_M.census_data[193], 100))) # Assume constant population sizes in future
-    m.F.pop_AP <- as.matrix(cbind(df_F.census_data, rep(df_F.census_data[193], 100)))
+    m.M.pop_AP <- as.matrix(cbind(df_M.census_data, rep(df_M.census_data[cohyears], 100))) # Assume constant population sizes in future
+    m.F.pop_AP <- as.matrix(cbind(df_F.census_data, rep(df_F.census_data[cohyears], 100)))
     
     # Calculate prevalence for men
     v_M.prev.minmax <- colSums(m.M.pop_AP[(minage+1):(maxage+1), ] * m_M.CSprev[(minage+1):(maxage+1), ]) / colSums(m.M.pop_AP[(minage+1):(maxage+1), ])
