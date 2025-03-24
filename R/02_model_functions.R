@@ -421,7 +421,7 @@ runstates <- function(fipscode, mla.effect, effect.CI, policy.scen){
   } else if (policy_decay == 1) {
     ### ALTERNATE SCENARIO, EXPONENTIAL DECAY
     # APPLY AN EXPONENTIAL DECAY TO POLICY EFFECTS STARTING IN 2030
-    m_mla.exp <- matrix(rep(1, (totalyears*100), nrow = 100, ncol = totalyears)
+    m_mla.exp <- matrix(rep(1, (totalyears*100), nrow = 100, ncol = totalyears))
     for (t in 123:totalyears) { # 2030-2100
       for (a in v_policy.ages) {
         m_mla.exp[a, t] <- (1 - 0.2)^(t - 122)

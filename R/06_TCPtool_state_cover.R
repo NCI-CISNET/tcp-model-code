@@ -1,6 +1,6 @@
 ### loop through all states to make policy coverage plots for the TCP tool 
 
-setwd("/Users/ac3456/Dropbox/state_tcp_tool/tcp-model-code/")
+setwd("/Users/wangmengyao/Documents/GitHub/tcp-model-code/")
 library(ggplot2)
 library(cdlTools)
 install.packages('svglite')
@@ -15,7 +15,7 @@ load("data/us_t21coverage.RData")
 #add in state data
 T21_state <- read_excel("data-raw/T21policycoverage.xlsx",sheet="Tobacco21.org")
 T21_state$Date <- as.Date(with(T21_state,paste(year,month,day,sep="-")),"%Y-%m-%d")
-statelabels = merge(T21_state[,c("year","month","abbrev","Date")],us_t21coverage[,c("year","month","statelocal")], by=c("month","year"),all.x=TRUE)
+statelabels = merge(T21_state[,c("year","month","abbrev","Date")],df_us_t21coverage[,c("year","month","statelocal")], by=c("month","year"),all.x=TRUE)
 
 ###############T21 policy coverage, 2014-2100
 
@@ -69,7 +69,7 @@ statelabels <- statelabels %>%
   ungroup()
 
 # Create the plot
-plotUS <- ggplot(data=us_t21coverage) +
+plotUS <- ggplot(data=df_us_t21coverage) +
   geom_line(aes(x=Date, y=fedstatelocal*100)) +
   geom_ribbon(aes(x=Date, ymin=statelocal*100, ymax=fedstatelocal*100), alpha=0.3, fill="#E69F00") +
   geom_ribbon(aes(x=Date, ymin=local*100, ymax=statelocal*100), alpha=0.3, fill="#0072B2") +
