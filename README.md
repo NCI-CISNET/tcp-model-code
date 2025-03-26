@@ -58,9 +58,10 @@ This file does not need to be run if you are not in need of the TCP tool data fi
 
 The R folder also contains 00_state_process.R, a script which performs all of the initial data processing and cleaning needed to run the TCP model. 
 This script does not need to be run, as all the raw data has been processed and saved in the "data" folder. 
-The script is included in the repository for those interested. The 00_state_process.R script loads the data in "data-raw" folder, reformats and cleans, 
-and saves the state specific data as inputs for population model. The data processed include state specific life expectancy,
-census population data, mortality probabilities, and smoking initiation/cessation probabilities.
+
+The script is included in the repository for those interested. The 00_state_process.R script loads the data in "data-raw" folder, reformats and cleans, and saves the state specific data as inputs for population model. The data processed include state specific life expectancy, census population data, mortality probabilities, and smoking initiation/cessation probabilities.
+
+Note: The large datasets "params_022422_1.csv" and "params_022422_2.csv" are not included in the data-raw folder due to GitHub's file size limitations (over 100MB). Interested users may contact the authors directly to request access to these files for data processing purposes.
 
 # Model Naming Conventions
 Where applicable, objects are named according the following format:
