@@ -1,4 +1,7 @@
-### loop through all states to make policy coverage plots for the TCP tool 
+#[[[[The entire script is currently structured around T21 policy and will require a full rewrite.]]]
+
+
+### loop through all states to make policy coverage plots for the TCP tool  
 
 setwd("/Users/wangmengyao/Documents/GitHub/tcp-model-code/")
 library(ggplot2)
