@@ -1,8 +1,8 @@
 # Load data, change data and paths as needed 
 
 
-dir <- "/Users/ac3456/Dropbox/state_tcp_tool/LC_code/TCP_model/source_data" 
-load('output/model_output_12.12.24.RData') #### whatever dataset you want to load
+dir <- "/Users/wangmengyao/Documents/GitHub/tcp-model-code/source_data" 
+load('output/model_output_03.20.25.RData') #### whatever dataset you want to load
 
 
 
@@ -11,10 +11,10 @@ v_statefips <- c('01','02','04','05','06','08','09','10','11','12','13','15','16
                  '30','31','32','33','34','35','36','37','38','39','40','41','42',
                  '44','45','46','47','48','49','50','51','53','54','55','56')
 
-v_mla.effects= c(main=0.3391,upper=0.5266,lower=0.1517,baseline=0)  # main T21 policy effect estimate with upper, lower bounds
+
 
 #tiers of policy coverage scenarios: local only, state&local, combined federal&state&local, and baseline (no coverage)
-v_policy.scen= c("local","statelocal","fedstatelocal","baseline")
+
 date_variable <- format(Sys.Date(), "%m.%d.%y")
 startbc <- 1908   # starting birth cohort 
 endbc <- 2100     # ending birth cohort
