@@ -1,9 +1,8 @@
 ## Load, reformat, and save state specific data as inputs for population model
 ## contains code for formatting and processing state specific life expectancy,
-## census population data, mortality probabilities, US policy coverage,
-##and smoking initiation/cessation probabilities
+## census population data, mortality probabilities, and smoking initiation/cessation probabilities
 
-mainDir <- "/Users/wangmengyao/Documents/GitHub/tcp-model-code/"
+mainDir <- "/Users/wangmengyao/Desktop/GitHub/tcp-model-code/"
 setwd(file.path(mainDir))
 
 library(reshape2)
@@ -42,7 +41,6 @@ for (fipscodeval in v_statefips){
   df_F.NS.LE=subset(df_F.NS.LE, fips==as.numeric(fipscodeval))
   v_F.NS.LE=df_F.NS.LE$life_exp
   m_F.NS.LE=array(v_F.NS.LE, dim=c(100,cohyears))
-  
   
   save(m_M.NS.LE,m_F.NS.LE,file=paste0("data/state_inputs/le_",fipscodeval,".RData"))
 }
@@ -175,8 +173,8 @@ for (f in v_statefips){
         pmax(v_F.RRFYSQ[j]*m_F.mortCS_AC[100*(icoh-startbirthcoh)+(41:100),5],m_F.mortNS_AC[100*(icoh-startbirthcoh)+(41:100),5])
     }
   }
-  ######Calculate mortality by calender year #####################################
-
+  ###### Calculate mortality by calender year #####################################
+  
   colyears=2100-1908+1
   m_M.mortNS_AP=matrix(NA,nrow=100,ncol=colyears)
   m_M.mortCS_AP=matrix(NA,nrow=100,ncol=colyears)
@@ -234,10 +232,11 @@ for (f in v_statefips){
   print(Sys.time() - t_init) # End timer
 }
 
+
 # Load in mortality rates and convert them into probabilities 
 
 for (f in v_statefips){
- 
+  
   load(paste0("data/state_inputs/mort_rates/mort_",f,".RData")) #mortality
   
   # Define the function to compute the probability
@@ -246,7 +245,7 @@ for (f in v_statefips){
     p <- 1 - exp(-rate * t)
     return(p)
   }
-
+  
   m_p_M.mortNS_AC <- m_M.mortNS_AC
   m_p_F.mortNS_AC <- m_F.mortNS_AC
   m_p_M.mortCS_AC <- m_M.mortCS_AC
@@ -284,15 +283,16 @@ for (f in v_statefips){
     m_p_M.mortNS_AP, m_p_M.mortCS_AP, m_p_M.mortFS_AP, a_p_M.mortYSQ_AP,
     m_p_F.mortNS_AP, m_p_F.mortCS_AP, m_p_F.mortFS_AP, a_p_F.mortYSQ_AP,
     file = paste0("data/state_inputs/mort_rates/p.mort_", f, ".RData"))
-
+  
 }
+
 
 # Smoking inputs ----------------------------------------------------------
 # state initiation and cessation probabilities, load and reformat by cohort
 
 # Read in smoking parameters for all states provided by Ted
-df_M.params=read.csv('data-raw/params_022422_1.csv') ##### Baseline parameters, should keep
-df_F.params=read.csv('data-raw/params_022422_2.csv') ##### Baseline parameters, should keep
+df_M.params=read.csv('data-raw/params_022422_1.csv') 
+df_F.params=read.csv('data-raw/params_022422_2.csv')
 
 for (f in v_statefips){
   
@@ -359,24 +359,16 @@ for (f in v_statefips){
   print(Sys.time() - t_init) # End timer
 }
 
+## Load data
 
+for (f in v_statefips) {
+  load(paste0("data/state_inputs/le_",f,".RData"))
+  load(paste0("data/state_inputs/pop_",f,".RData"))
+  load(paste0("data/state_inputs/mort_rates/mort_",f,".RData"))
+  load(paste0("data/state_inputs/mort_rates/p.mort_", f, ".RData"))
+  load(paste0("data/state_inputs/smk_",f,".RData"))
+}
 
-#--------- tobacco tax -----------------------------------------------
-
-df_tax_state <- read.csv("data-raw/tobacco_tax_data.csv") # Replace the placeholder tax dataset name with the actual dataset name
-
-# Calculate total price
-df_tax_state$total_price_2020 <- df_tax_state$base_price_2020 + 
-                                df_tax_state$local_tax_2020 +
-                                df_tax_state$state_tax_2020 + 
-                                df_tax_state$federal_tax_2020
-  
-# Write template to file for future editing
-write.csv(df_tax_state, "data-raw/tobacco_tax_data.csv", row.names = FALSE)
-
-# Save the tobacco tax data
-save(df_tax_state, file="data/tax_policy_inputs.RData.Rda") 
 
 ## Sources:
 # Surveillance Epidemiology and End Results (SEER) Program. Standard Populations - Single Ages. Accessed 2/19/2024, 2024. https://seer.cancer.gov/stdpopulations/stdpop.singleages.html
-
