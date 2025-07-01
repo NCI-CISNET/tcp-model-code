@@ -1,9 +1,8 @@
 ## Load, reformat, and save state specific data as inputs for population model
 ## contains code for formatting and processing state specific life expectancy,
-## census population data, mortality probabilities, US policy coverage,
-##and smoking initiation/cessation probabilities
+## census population data, mortality probabilities, and smoking initiation/cessation probabilities
 
-mainDir <- "/Users/JT936/Dropbox/GitHub/tcp-model-code/"
+mainDir <- "/Users/wangmengyao/Desktop/GitHub/tcp-model-code/"
 setwd(file.path(mainDir))
 
 library(reshape2)
@@ -43,11 +42,8 @@ for (fipscodeval in v_statefips){
   v_F.NS.LE=df_F.NS.LE$life_exp
   m_F.NS.LE=array(v_F.NS.LE, dim=c(100,cohyears))
   
-  
   save(m_M.NS.LE,m_F.NS.LE,file=paste0("data/state_inputs/le_",fipscodeval,".RData"))
 }
-
-
 
 
 # Census population data --------------------------------------------------
@@ -177,8 +173,8 @@ for (f in v_statefips){
         pmax(v_F.RRFYSQ[j]*m_F.mortCS_AC[100*(icoh-startbirthcoh)+(41:100),5],m_F.mortNS_AC[100*(icoh-startbirthcoh)+(41:100),5])
     }
   }
-  ######Calculate mortality by calender year #####################################
-
+  ###### Calculate mortality by calender year #####################################
+  
   colyears=2100-1908+1
   m_M.mortNS_AP=matrix(NA,nrow=100,ncol=colyears)
   m_M.mortCS_AP=matrix(NA,nrow=100,ncol=colyears)
@@ -236,10 +232,11 @@ for (f in v_statefips){
   print(Sys.time() - t_init) # End timer
 }
 
+
 # Load in mortality rates and convert them into probabilities 
 
 for (f in v_statefips){
- 
+  
   load(paste0("data/state_inputs/mort_rates/mort_",f,".RData")) #mortality
   
   # Define the function to compute the probability
@@ -248,7 +245,7 @@ for (f in v_statefips){
     p <- 1 - exp(-rate * t)
     return(p)
   }
-
+  
   m_p_M.mortNS_AC <- m_M.mortNS_AC
   m_p_F.mortNS_AC <- m_F.mortNS_AC
   m_p_M.mortCS_AC <- m_M.mortCS_AC
@@ -286,15 +283,16 @@ for (f in v_statefips){
     m_p_M.mortNS_AP, m_p_M.mortCS_AP, m_p_M.mortFS_AP, a_p_M.mortYSQ_AP,
     m_p_F.mortNS_AP, m_p_F.mortCS_AP, m_p_F.mortFS_AP, a_p_F.mortYSQ_AP,
     file = paste0("data/state_inputs/mort_rates/p.mort_", f, ".RData"))
-
+  
 }
+
 
 # Smoking inputs ----------------------------------------------------------
 # state initiation and cessation probabilities, load and reformat by cohort
 
 # Read in smoking parameters for all states provided by Ted
-df_M.params=read.csv('data-raw/params_022422_1.csv')
-df_F.params=read.csv('data-raw/params_022422_2.csv') 
+df_M.params=read.csv('data-raw/params_022422_1.csv') 
+df_F.params=read.csv('data-raw/params_022422_2.csv')
 
 for (f in v_statefips){
   
@@ -360,165 +358,17 @@ for (f in v_statefips){
        file=paste0("data/state_inputs/smk_",f,".RData"))
   print(Sys.time() - t_init) # End timer
 }
-#--------- State policy coverage -----------------------------------------------
 
-# Load in state T21 policy data from Tobacco21.org
-df_T21_state <- read_excel("data-raw/T21policycoverage.xlsx",sheet="Tobacco21.org",col_names=TRUE)
-df_T21_state$t21statepolicy <- 1 
+## Load data
 
-# Use Vander Woude's updated dataset which covers T21 policies through December 2022
-df_vw_county <- read_dta("data-raw/T21_20240613.dta")
-df_vw_county$statefips <- substr(df_vw_county$cfips, 1, 2)
-df_vw_county$statename <- fips(df_vw_county$statefips, to="Name")
-df_vw_county$countypercentcovered <- df_vw_county$pctcovered_county
-df_vw_county$countypercentcovered[df_vw_county$countypercentcovered>1]<-1 # replace values where percent is greater than 1 (n=24)
-df_vw_county$countypopcovered <- df_vw_county$cpopestimate*(df_vw_county$countypercentcovered) # change 0%-100% to 0-1
-
-# Aggregate by state, month, year. Then summarize within groups.
-df_vw_state <- df_vw_county %>% 
-  group_by(statename, month, year) %>% 
-  summarize(statepopcovered = sum(countypopcovered),statepoptotal = sum(cpopestimate))
-df_vw_state$statepercentcovered = (df_vw_state$statepopcovered / df_vw_state$statepoptotal)
-df_vw_state <- subset(df_vw_state,year>=2005)
-
-# add empty rows for 2023-2025 and fill in with data from Dec 2022 for now
-dec2022 <- subset(df_vw_state,month==12&year==2022) # last month-year that Vander Woude dataset provides
-df_t21data2005.2025 <- as.data.frame(df_vw_state)
-
-for (s in v_statefips){
-  for (m in 1:12){
-    for (y in 2023:2025){ 
-      newrow=c(fips(s,to="Name"),m,y,as.numeric(dec2022[dec2022$statename==fips(s,to="Name"),c(4:5)]),NA)
-      df_t21data2005.2025<-rbind(df_t21data2005.2025,newrow)
-    }
-  }
+for (f in v_statefips) {
+  load(paste0("data/state_inputs/le_",f,".RData"))
+  load(paste0("data/state_inputs/pop_",f,".RData"))
+  load(paste0("data/state_inputs/mort_rates/mort_",f,".RData"))
+  load(paste0("data/state_inputs/mort_rates/p.mort_", f, ".RData"))
+  load(paste0("data/state_inputs/smk_",f,".RData"))
 }
 
-df_t21data2005.2025$month<-as.numeric(df_t21data2005.2025$month)
-df_t21data2005.2025$year<-as.numeric(df_t21data2005.2025$year)
-df_t21data2005.2025$statepercentcovered<-as.numeric(df_t21data2005.2025$statepercentcovered) 
-
-# Now combine this with the state-level T21 policies dates
-df_t21data2005.2025 = merge(df_t21data2005.2025,df_T21_state,by=c("month","year","statename"),all.x=TRUE,all.y=TRUE)
-# Convert State FIPS code to State abbreviation
-df_t21data2005.2025$statefips = fips(df_t21data2005.2025$statename, to="FIPS")
-df_t21data2005.2025$statefips0 = str_pad(df_t21data2005.2025$statefips, width = 2, pad = "0")
-df_t21data2005.2025$stateabbrev = fips(df_t21data2005.2025$statefips, to="Abbreviation")
-# Add leading zeros to dates
-df_t21data2005.2025$month0=str_pad(df_t21data2005.2025$month, width = 2, pad = "0")
-df_t21data2005.2025$day0=str_pad(df_t21data2005.2025$day, width = 2, pad = "0")
-# Transform to year.month.day for x-axis plotting
-df_t21data2005.2025$date = ym(paste0(df_t21data2005.2025$year,df_t21data2005.2025$month0))
-# Create empty columns for policy coverage under different coverage scenarios
-df_t21data2005.2025$local <- df_t21data2005.2025$statelocal <- df_t21data2005.2025$fedstatelocal <- NA
-
-# create vector of dates to loop through
-st <- ymd("2005-01-01")
-en <- ymd("2025-12-01")
-months.2005.2025 <- st %m+% months(seq(0, round(interval(st, en) / months(1)), 1))
-
-# assign percent covered at local, state+local, and federal+state+local levels
-for (s in v_statefips){
-  # t = 1
-  startdate = df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
-                                 df_t21data2005.2025$date==months.2005.2025[1],]
-  df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
-                     df_t21data2005.2025$date==months.2005.2025[1],]$local <-startdate$statepercentcovered
-  df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
-                     df_t21data2005.2025$date==months.2005.2025[1],]$statelocal <-startdate$statepercentcovered
-  for (t in 2:length(months.2005.2025)){
-    # get t21 coverage from previous month
-    before = df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
-                                df_t21data2005.2025$date==months.2005.2025[t-1],]
-    now = df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
-                             df_t21data2005.2025$date==months.2005.2025[t],]
-    if (is.na(now$t21statepolicy)&is.na(now$statepercentcovered)){  #  if no data for state or local t21, use local data from previous period
-      df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
-                         df_t21data2005.2025$date==months.2005.2025[t],]$local <-before$local
-      df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
-                         df_t21data2005.2025$date==months.2005.2025[t],]$statelocal <-before$statelocal
-    } else if (!is.na(now$t21statepolicy)){ # if statewide t21, use previous statepercentcovered for local, and 1 for statelocal
-      df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
-                         df_t21data2005.2025$date==months.2005.2025[t],]$local <-before$local
-      df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
-                         df_t21data2005.2025$date==months.2005.2025[t],]$statelocal <-now$t21statepolicy
-      
-    } else if (is.na(now$t21statepolicy)&!is.na(now$statepercentcovered)){
-      if (now$statepercentcovered==1){
-        # if local t21 only, use local data
-        df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
-                           df_t21data2005.2025$date==months.2005.2025[t],]$local <-before$local
-        df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
-                           df_t21data2005.2025$date==months.2005.2025[t],]$statelocal <-now$statepercentcovered
-      } else { # , keep local data only for local scenario
-        df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
-                           df_t21data2005.2025$date==months.2005.2025[t],]$local <-now$statepercentcovered
-        df_t21data2005.2025[df_t21data2005.2025$statename==fips(s,to="Name")&
-                           df_t21data2005.2025$date==months.2005.2025[t],]$statelocal <-now$statepercentcovered
-      }
-    }
-  }
-}
-
-df_t21data2005.2025$fedstatelocal <- df_t21data2005.2025$statelocal # same state/local coverage pre-federal T21
-df_t21data2005.2025[df_t21data2005.2025$date>= as.Date('2019-12-01'),]$fedstatelocal <-1 # federal T21 
-
-df_t21data2005.2025 <- df_t21data2005.2025[order(df_t21data2005.2025$statefips, df_t21data2005.2025$date),]
-df_t21data2005.2025$fipscode0=str_pad(df_t21data2005.2025$statefips, width = 2, pad = "0")
-
-# North Dakota T21 was technically implemented on 4/1/21 and not 3/1/21 
-df_t21data2005.2025$statelocal[df_t21data2005.2025$stateabbrev=="ND"&df_t21data2005.2025$month==3&df_t21data2005.2025$year==2021] <- 0
-
-# Nebraska T21 was technically implemented on 10/1/20 and not 8/15/20
-df_t21data2005.2025$statelocal[df_t21data2005.2025$stateabbrev=="NE"&df_t21data2005.2025$month<10&df_t21data2005.2025$year==2020] <- 0
-
-# Michigan Local T21 - local coverage goes to 2100
-df_t21data2005.2025$local[df_t21data2005.2025$stateabbrev=="MI"&df_t21data2005.2025$date>'2019-11-01'] <- df_t21data2005.2025$local[df_t21data2005.2025$stateabbrev=="MI"&df_t21data2005.2025$date=='2019-11-01']
-df_t21data2005.2025$statelocal[df_t21data2005.2025$stateabbrev=="MI"&df_t21data2005.2025$date>'2019-11-01'&df_t21data2005.2025$date<'2022-7-01'] <- df_t21data2005.2025$statelocal[df_t21data2005.2025$stateabbrev=="MI"&df_t21data2005.2025$date=='2019-11-01']
-
-
-save(df_t21data2005.2025,file="data/T21policycoverage2005.2025.Rda")
-
-load("data/T21policycoverage2005.2025.Rda")
-
-#--------- US policy coverage -----------------------------------------------
-
-## Add US population covered by T21
-USstatetotals <- read_excel('data-raw/Census State Population Total 2003-2023.xlsx',sheet='statetotals')
-USstatetotals=melt(USstatetotals,id.vars='statename',variable.name = 'year',value.name = 'statepop') #statepop
-USstatetotals$year <- as.numeric(as.character(USstatetotals$year))
-# Filter the data for the year 2023
-data_2023 <- subset(USstatetotals, year == 2023)
-
-# Modify the year to 2024
-data_2024 <- data_2023
-data_2024$year <- 2024
-
-# Append the new 2024 data to the original dataframe
-USstatetotals <- rbind(USstatetotals, data_2024)
-
-statetotals <- subset(USstatetotals,year>=2014 & statename!="United States")
-ustotals <- subset(USstatetotals,year>=2014 & statename=="United States")
- 
-df_t21data2005.2025 = merge(statetotals,df_t21data2005.2025,by = c('statename','year'),all = TRUE)
-# number of people covered by T21 in each state 2014-2023
-df_t21data2005.2025$fedstatelocal_covered = df_t21data2005.2025$fedstatelocal*df_t21data2005.2025$statepop
-df_t21data2005.2025$statelocal_covered = df_t21data2005.2025$statelocal*df_t21data2005.2025$statepop
-df_t21data2005.2025$local_covered = df_t21data2005.2025$local*df_t21data2005.2025$statepop
-
-# Aggregate by month, year across all states
-df_us_t21coverage <- df_t21data2005.2025 %>% 
-  group_by(month, year) %>% 
-  summarize(us_fsl_covered = sum(fedstatelocal_covered),us_sl_covered = sum(statelocal_covered),us_l_covered = sum(local_covered))
-
-df_us_t21coverage <- merge(df_us_t21coverage,ustotals, by=c('year'))
-df_us_t21coverage$fedstatelocal = (df_us_t21coverage$us_fsl_covered / df_us_t21coverage$statepop)
-df_us_t21coverage$statelocal = (df_us_t21coverage$us_sl_covered / df_us_t21coverage$statepop)
-df_us_t21coverage$local = (df_us_t21coverage$us_l_covered / df_us_t21coverage$statepop)
-df_us_t21coverage$day=1
-df_us_t21coverage$Date <- as.Date(with(df_us_t21coverage,paste(year,month,day,sep="-")),"%Y-%m-%d")
-
-save(df_us_t21coverage, file = "data/us_t21coverage.RData")
 
 ## Sources:
 # Surveillance Epidemiology and End Results (SEER) Program. Standard Populations - Single Ages. Accessed 2/19/2024, 2024. https://seer.cancer.gov/stdpopulations/stdpop.singleages.html
