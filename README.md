@@ -23,7 +23,7 @@ Tax effects are applied through arc elasticity and implemented via modifiers to 
 Simulations span tax increases from $1 to $3 above current state price levels, beginning in 2025 and running through 2100.
 
 
-**2.Smoke-Free Air Laws **
+**2.Smoke-Free Air Laws**
 Modeled as venue-specific interventions (workplaces, restaurants, bars), smoke-free air laws modify initiation and cessation probabilities based on the scope of venue coverage.
 Effects are scaled by existing coverage rates and simulated across incremental increases up to 100% coverage in each venue.
 
