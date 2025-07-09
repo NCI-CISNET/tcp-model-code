@@ -5,8 +5,8 @@ modeling framework developed for each of the 50 US states and District of Columb
 probabilities by age, gender, and birth-cohort. It has been adapted from a previous US model, known as the CISNET Smoking History Generator Population Model (Tam et al., 2021).
 The TCP Model estimates the long-term potential impacts of policies on smoking prevalence and mortality outcomes. 
 
-The accompanying code evaluates the impacts of Tobacco 21 (T21) policies, which raise the minimum legal age of cigarette purchase to 21. For more details, see:
-*	US Tobacco 21 policies and potential mortality reductions by state (pending publication)
+The accompanying code evaluates the impacts of three tobacco control policies: cigarette taxation, smoke-free air laws, and tobacco control expenditures.
+It simulates the effects of each policy at the state level.
 
 
 # Methodology 
@@ -17,20 +17,26 @@ by smoking status and years since quitting, or upon reaching age 99. Mortality p
 Among people who have quit smoking, mortality probabilities vary by years since quitting. The TCP Model outputs smoking prevalence by age group and mortality outcomes 
 in the form of smoking-attributable deaths averted and life-years gained. 
 
-Application to T21 policies
-Policy scenarios are modeled based on the governance tier of T21 policies at the local, state, and federal levels. Four policy scenarios are modeled: 
-1.	baseline (no T21);
-2.	local T21; 
-3.	state & local T21; 
-4.	combined local, state, & federal T21. 
+**1.Cigarette Taxation**
+Cigarette tax policies are modeled as price increases fully passed to consumers, influencing initiation and cessation through age-specific elasticities. 
+Tax effects are applied through arc elasticity and implemented via modifiers to individual-level transition probabilities. 
+Simulations span tax increases from $1 to $3 above current state price levels, beginning in 2025 and running through 2100.
 
-Policy effects estimates are based on state-level findings from Hansen et. al, which translate to a 34% reduction to smoking initiation among persons ages 18-20 (95% CI: 15%-53%). 
-For each policy scenario, three policy effect sizes are modeled: 15%, 34%, and 53% relative reductions to initiation probabilities. 
-The upper and lower confidence intervals were modeled as sensitivity analysis to gauge outcomes under "optimistic" and "pessimistic" conditions. 
+
+**2.Smoke-Free Air Laws **
+Modeled as venue-specific interventions (workplaces, restaurants, bars), smoke-free air laws modify initiation and cessation probabilities based on the scope of venue coverage.
+Effects are scaled by existing coverage rates and simulated across incremental increases up to 100% coverage in each venue.
+
+
+**3.Tobacco Control Programme Expenditures**
+Effects of programme expenditures are based on literature and expert consensus, assuming a 10% reduction in initiation and 12.5% increase in cessation when funding reaches 100% of CDC recommendations. 
+A nonlinear response function reflects increasing and diminishing returns.
+States are modeled from their current funding levels in 10-percentage-point increments up to 100%.
+
 
 # Model Usage
 
-The TCP modeling framework is comprised of six R script files, numbered in the order in which they should be run. 
+The TCP modeling framework is comprised of seven R script files, numbered in the order in which they should be run. 
 
 **01_model_inputs.R** 
 *	loads the necessary packages, loads global datasets, and sets model inputs. The beginning of the file contains two inputs that need to be set based on the user's desired outputs.
@@ -49,10 +55,23 @@ File generation is not necessary unless you are working on TCP tool website deve
 **03_main_analysis.R**
 *	runs the TCP model, loops through every state and saves the prevalence and mortality outputs.
  
-**04_visualization.R**
-*	Contains the functions to plot the figures included in the manuscript.
+**04_visualization_policy_specific.R**
+*	functions to visualize the policy-specific impacts on life-years gained, deaths avoided, smoking prevalence, and prevalence reduction, based on each policy’s own input parameters.
 
-**05_generate_US_csv.R**
+**05_visualization_within_policy_comparison.R**
+* functions to generate within-policy comparisons for each tobacco control policy, illustrating the impact of varying implementation levels on key outcomes.
+
+**06_visualization_across_policy_comparison.R**
+* functions to compare the impacts of different tobacco control policies across states by generating:
+1. A US map and accompanying table displaying baseline state-level smoking prevalence in 2025  
+2. Estimates of deaths averted per state under full implementation of all policies  
+3. A 3x3 grid for each state visualizing the effects of tax increases, smoke-free air laws, and expenditure increases on:
+   - Smoking prevalence reduction  
+   - Life-years gained  
+   - Deaths averted  
+4. A summary table of baseline policy parameters by state  
+
+**07_generate_US_csv.R**
 *	Generates the USA total .csv files needed for the TCP tool by aggregating the mortality and smoking prevalence outputs for each of the states.
 This file does not need to be run if you are not in need of the TCP tool data files.
 
@@ -91,24 +110,18 @@ PharmacoEconomics, vol. 37, no. 11, 24 Sept. 2019, pp. 1329–1339, https://doi.
 
 
 # Authors and acknowledgments
-Alyssa Crippen<sup>1</sup>  \
-Jamie Tam<sup>1</sup>   \
-Rafael Meza<sup>2</sup>   \
-Jihyoun Jeon<sup>3</sup> 
-
+Mengyao Wang \
+Jamie Tam \
+Sarah Skolnick 
 
 ### Author Affiliations:
 
 1.	Department of Health Policy and Management, Yale School of Public Health
-2.	Integrative Oncology, BC Cancer Research Centre
-3.	Department of Epidemiology, University of Michigan School of Public Health
+2.	Department of Biostatistics, Yale Graduate School of Arts and Sciences
    
 Model code is based on the Cancer Intervention and Surveillance Modeling Network (CISNET) Smoking History Generator Population Model
 used for modeling the effects of graphic health warnings (Tam et al., 2021). See corresponding GitHub repository [here](https://github.com/mezarafael/SHG_PopModel_GHW).
 
 ### References:
 
-Tam J, Jeon J, Thrasher JF, et al. Estimated Prevalence of Smoking and Smoking-Attributable Mortality Associated With Graphic Health Warnings
-on Cigarette Packages in the US From 2022 to 2100. JAMA Health Forum. 2021;2(9):e212852. [doi:10.1001/jamahealthforum.2021.2852](https://jamanetwork.com/journals/jama-health-forum/fullarticle/2784492)
-
-
+Tam J, Levy DT, Jeon J, Clarke J, Gilkeson S, Hall T, Feuer EJ, Holford TR, Meza R. Projecting the effects of tobacco control policies in the USA through microsimulation: a study protocol. BMJ Open. 2018 Mar 23;8(3):e019169. doi: 10.1136/bmjopen-2017-019169. PMID: 29574440; PMCID: PMC5875683.
