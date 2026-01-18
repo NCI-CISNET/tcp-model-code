@@ -459,294 +459,6 @@ runstates <- function(fipscode, m.initiation.effect, m.cessation.effect){
 }
 
 
-runstates <- function(fipscode, m.initiation.effect, m.cessation.effect){
-  
-  t_block <- function(label, expr){
-    tm <- system.time(out <- eval.parent(substitute(expr)))
-    message(sprintf("[TIMER] %s: %.3fs (user %.3f, sys %.3f)", 
-                    label, tm["elapsed"], tm["user.self"], tm["sys.self"]))
-    out
-  }
-  
-  # Load state-specific census populations (2010-2019), smoking parameters, mortality, life expectancy
-  # by smoking status, birth cohort, calendar year
-  # CENSUS DATA REQUIRES SOME CLEANING FOR ANNUAL BIRTHS BY GENDER
-  t_block("load inputs", {
-    load(paste0("data/state_inputs/mort_rates/p.mort_", fipscode, ".RData"))
-    load(paste0("data/state_inputs/smk_",fipscode,".RData"))
-    load(paste0("data/state_inputs/pop_",fipscode,".RData"))
-    load(paste0("data/state_inputs/le_",fipscode,".RData"))
-  })
-  
-  
-  # RUN STATUS QUO MODEL
-  # set initiation and cessation for policy to be the same as the baseline 
-  # generate_prevs() determines prevalence and calculate_mort() determines mortality outcomes
-  # generate_prevs inputs: (starting cohort, gender, initiation, cessation , policy_initiation, policy_cessation,
-  # neversmoker_mortality, currentsmoker_mortality, formersmoker_mortality, mortality_by_YSQ, state_number_of_births)
-  
-  gender <- 'Men'
-  l_M.base.prev <- t_block("baseline men generate_prevs", {
-    generate_prevs(startbc, "Men", m_M.initAC, m_M.cessAC,
-                   m_M.initAC, m_M.cessAC, m_p_M.mortNS_AC,
-                   m_p_M.mortCS_AC, a_p_M.mortYSQ_AC, v_stdbirths)
-  })
-  
-  l_M.base.mort <- t_block("baseline men calculate_mort", {
-    calculate_mort(l_M.base.prev, m_p_M.mortNS_AP, m_p_M.mortCS_AP,
-                   a_p_M.mortYSQ_AP, m_M.NS.LE, df_M.census_data)
-  })
-  
-  gender <- 'Women'
-  l_F.base.prev <- t_block("baseline women generate_prevs", {
-    generate_prevs(startbc, "Women", m_F.initAC, m_F.cessAC,
-                   m_F.initAC, m_F.cessAC, m_p_F.mortNS_AC,
-                   m_p_F.mortCS_AC, a_p_F.mortYSQ_AC, v_stdbirths)
-  })
-  
-  
-  l_F.base.mort <- t_block("baseline women calculate_mort", {
-    calculate_mort(l_F.base.prev, m_p_F.mortNS_AP, m_p_F.mortCS_AP,
-                   a_p_F.mortYSQ_AP, m_F.NS.LE, df_F.census_data)
-  })
-  
-  ### TO APPLY SCENARIO EFFECTS, DATA NEEDS TO BE REFORMATTED TO AGE-PERIOD (AP)
-  ### REFORMATTING ALONG DIAGONAL FROM AC TO AP REQUIRES EXTENDING TO 2200 (CALYEARS) 
-  
-  m_F.init.base_AP <- matrix(NA,100,(cohyears+100)) # initiation rates for women, age-period for baseline
-  m_M.init.base_AP <- matrix(NA,100,(cohyears+100))
-  m_F.cess.base_AP <- matrix(NA,100,(cohyears+100)) # cessation rates for women, age-period for baseline
-  m_M.cess.base_AP <- matrix(NA,100,(cohyears+100))
-  
-  colnames(m_F.init.base_AP) <- colnames(m_M.init.base_AP) <- as.character (startbc:endyear)
-  colnames(m_F.cess.base_AP) <- colnames(m_M.cess.base_AP) <- as.character (startbc:endyear)
-  
-  ## REFORMAT: fill these base AP matrices from the original AC matrices
-  t_block("AC->AP reformat loops", {
-    for (byr in startbc:endbc){
-      for (age in 0:99){
-        calyr <- byr + age
-        m_F.init.base_AP[age+1, calyr-startbc+1] <- m_F.initAC[age+1, byr-startbc+1]
-        m_M.init.base_AP[age+1, calyr-startbc+1] <- m_M.initAC[age+1, byr-startbc+1]
-        m_F.cess.base_AP[age+1, calyr-startbc+1] <- m_F.cessAC[age+1, byr-startbc+1]
-        m_M.cess.base_AP[age+1, calyr-startbc+1] <- m_M.cessAC[age+1, byr-startbc+1]
-      }
-    }
-  })
-  
-  ## APPLY Policy Effects TO BASELINE INITIATION
-  t_block("apply effects (elementwise mult)", {
-    m_F.init.policy_AP <- m_F.init.base_AP * m.initiation.effect
-    m_M.init.policy_AP <- m_M.init.base_AP * m.initiation.effect
-    m_F.cess.policy_AP <- m_F.cess.base_AP * m.cessation.effect
-    m_M.cess.policy_AP <- m_M.cess.base_AP * m.cessation.effect
-  })
-  
-  ## REFORMAT BACK TO AGE COHORT
-  m_F.init.policy_AC <- matrix(NA, nrow = 100, ncol = 0)
-  m_M.init.policy_AC <- matrix(NA, nrow = 100, ncol = 0)
-  m_F.cess.policy_AC <- matrix(NA, nrow = 100, ncol = 0)
-  m_M.cess.policy_AC <- matrix(NA, nrow = 100, ncol = 0)
-  
-  # AP-to-AC conversion
-  t_block("AP->AC conversion (cbind+diag)", {
-    for (bc in startbc:endbc) {
-      m_F.init.policy_AC <- cbind(m_F.init.policy_AC, diag(m_F.init.policy_AP[, (bc - (startbc - 1)) : ncol(m_F.init.policy_AP)]))
-      m_M.init.policy_AC <- cbind(m_M.init.policy_AC, diag(m_M.init.policy_AP[, (bc - (startbc - 1)) : ncol(m_M.init.policy_AP)]))
-      m_F.cess.policy_AC <- cbind(m_F.cess.policy_AC, diag(m_F.cess.policy_AP[, (bc - (startbc - 1)) : ncol(m_F.cess.policy_AP)]))
-      m_M.cess.policy_AC <- cbind(m_M.cess.policy_AC, diag(m_M.cess.policy_AP[, (bc - (startbc - 1)) : ncol(m_M.cess.policy_AP)]))
-    }
-  })
-  
-  colnames(m_F.init.policy_AC) <- colnames(m_M.init.policy_AC) <- as.character(startbc:endbc)
-  colnames(m_F.cess.policy_AC) <- colnames(m_M.cess.policy_AC) <- as.character(startbc:endbc)
-  
-  ### RUN POLICY SCENARIOS   
-  gender <- 'Men'
-  l_M.policy.prev <- t_block("policy men generate_prevs", {
-    generate_prevs(startbc, "Men", m_M.init.policy_AC, m_M.cess.policy_AC,
-                   m_M.initAC, m_M.cessAC, m_p_M.mortNS_AC,
-                   m_p_M.mortCS_AC, a_p_M.mortYSQ_AC, v_stdbirths)
-  })
-  
-  
-  l_M.policy.mort <- t_block("policy men calculate_mort", {
-    calculate_mort(l_M.policy.prev, m_p_M.mortNS_AP, m_p_M.mortCS_AP,
-                   a_p_M.mortYSQ_AP, m_M.NS.LE, df_M.census_data)
-  })
-  
-  gender <- 'Women'
-  l_F.policy.prev <- t_block("policy women generate_prevs", {
-    generate_prevs(startbc, "Women", m_F.init.policy_AC, m_F.cess.policy_AC,
-                   m_F.initAC, m_F.cessAC, m_p_F.mortNS_AC,
-                   m_p_F.mortCS_AC, a_p_F.mortYSQ_AC, v_stdbirths)
-  })
-  
-  l_F.policy.mort <- t_block("policy women calculate_mort", {
-    calculate_mort(l_F.policy.prev, m_p_F.mortNS_AP, m_p_F.mortCS_AP,
-                   a_p_F.mortYSQ_AP, m_F.NS.LE, df_F.census_data)
-  })
-  
-  #------------------- format prev for outputting -----------------------------------
-  ##-------------- State-specific smoking prevalence based on census population data 
-df_CSprevs.by.state <- t_block("output prev by state (age bands)", {  
-  df_CSprevs.by.state <- NULL
-  
-  # age groups to loop through
-  v_minage <- c(18, 18, 25, 45, 65)
-  v_maxage <- c(99, 24, 44, 64, 99)
-  
-  for (i in c(1:5)){
-    minage <- v_minage[i]
-    maxage <- v_maxage[i]
-    
-    m_M.CSprev <- l_M.policy.prev$m_CSprevAP
-    m_F.CSprev <- l_F.policy.prev$m_CSprevAP
-    
-    # Create population matrices
-    m.M.pop_AP <- as.matrix(cbind(df_M.census_data, rep(df_M.census_data[cohyears], 100))) # Assume constant population sizes in future
-    m.F.pop_AP <- as.matrix(cbind(df_F.census_data, rep(df_F.census_data[cohyears], 100)))
-    
-    colnames( m.M.pop_AP) <- colnames(m.F.pop_AP) <- as.character(startbc:endyear)
-    
-    # Calculate prevalence for men
-    v_M.prev.minmax <- colSums(m.M.pop_AP[(minage+1):(maxage+1), ] * m_M.CSprev[(minage+1):(maxage+1), ]) / colSums(m.M.pop_AP[(minage+1):(maxage+1), ])
-    
-    # Calculate prevalence for women
-    v_F.prev.minmax <- colSums(m.F.pop_AP[(minage+1):(maxage+1), ] * m_F.CSprev[(minage+1):(maxage+1), ]) / colSums(m.F.pop_AP[(minage+1):(maxage+1), ])
-    
-    # Calculate combined prevalence for both men and women
-    v_numerator <- colSums(m.M.pop_AP[(minage+1):(maxage+1), ] * m_M.CSprev[(minage+1):(maxage+1), ]) + colSums(m.F.pop_AP[(minage+1):(maxage+1), ] * m_F.CSprev[(minage+1):(maxage+1), ])
-    v_denominator <- colSums(m.M.pop_AP[(minage+1):(maxage+1), ]) + colSums(m.F.pop_AP[(minage+1):(maxage+1), ])
-    v_B.prev.minmax <- v_numerator / v_denominator
-    
-    # Combine data into a single data frame for the current age group
-    df_CSprevbystate_temp <- as.data.frame(rbind(
-      cbind(v_M.prev.minmax[1:cohyears], "Men"),
-      cbind(v_F.prev.minmax[1:cohyears], "Women"),
-      cbind(v_B.prev.minmax[1:cohyears], "Both")
-    ))
-    
-    # Set column names
-    colnames(df_CSprevbystate_temp) <- c("prev", "gender")
-    
-    # Add additional columns
-    df_CSprevbystate_temp$age <- paste0(minage, ".", maxage)
-    df_CSprevbystate_temp$year <- rep(names(v_M.prev.minmax[1:cohyears]), 3)
-    df_CSprevbystate_temp$state <- fipscode
-    df_CSprevbystate_temp$abbr <- fips_to_abbr(fipscode)
-    
-    # Combine with the final data frame
-    df_CSprevs.by.state <- rbind(df_CSprevs.by.state, df_CSprevbystate_temp)
-  }
-  
-  df_CSprevs.by.state$prev<- as.numeric(df_CSprevs.by.state$prev)
-  df_CSprevs.by.state$year<- as.numeric(df_CSprevs.by.state$year)
-  df_CSprevs.by.state
-})
-  
-  #--------------format prev for output ----------------------------------------
-  #-----------------------------------------------------------------------------
-  
-  m_M.smokers <- l_M.policy.prev$m_smokersAP
-  m_F.smokers <- l_F.policy.prev$m_smokersAP
-  m_M.popAP <- l_M.policy.prev$m_popAP
-  m_F.popAP <- l_F.policy.prev$m_popAP
-  m_M.CSprevAC <- cbind(l_M.policy.prev$m_CSprevAC, 'Male')
-  m_F.CSprevAC <- cbind(l_F.policy.prev$m_CSprevAC, 'Female')
-  
-
-  l_prev_out <- t_block("pack prev objects (l_prev_out)", {
-    list(
-      state = fipscode,
-      
-      m_M_smokers = l_M.policy.prev$m_smokersAP,
-      m_F_smokers = l_F.policy.prev$m_smokersAP,
-      m_M_popAP   = l_M.policy.prev$m_popAP,
-      m_F_popAP   = l_F.policy.prev$m_popAP,
-      
-      male_prev_obj        = l_M.policy.prev,
-      female_prev_obj      = l_F.policy.prev,
-      male_base_prev_obj   = l_M.base.prev,
-      female_base_prev_obj = l_F.base.prev,
-      
-      male_mort_obj        = l_M.policy.mort,
-      female_mort_obj      = l_F.policy.mort,
-      male_base_mort_obj   = l_M.base.mort,
-      female_base_mort_obj = l_F.base.mort,
-      
-      startbc = startbc,
-      endbc   = endbc,
-      endyear = endyear
-    )
-  })
-  
-  # ------------------- mortality / YLL / SAD / LYG formatting -----------------------
-  df_mort.outputs <- t_block("format mortality outputs (df_mort.outputs)", {
-    
-    v_M.YLLyear <- l_M.policy.mort$v_YLLyear
-    v_F.YLLyear <- l_F.policy.mort$v_YLLyear
-    v_B.YLLyear <- v_M.YLLyear + v_F.YLLyear
-    v_M.YLLcum  <- cumsum(v_M.YLLyear)
-    v_F.YLLcum  <- cumsum(v_F.YLLyear)
-    v_B.YLLcum  <- cumsum(v_B.YLLyear)
-    
-    v_M.SADyear <- l_M.policy.mort$v_SADyear
-    v_F.SADyear <- l_F.policy.mort$v_SADyear
-    v_B.SADyear <- v_M.SADyear + v_F.SADyear
-    v_M.SADcum  <- cumsum(v_M.SADyear)
-    v_F.SADcum  <- cumsum(v_F.SADyear)
-    v_B.SADcum  <- cumsum(v_B.SADyear)
-    
-    df_M.LYG_AP <- l_M.base.mort$df_YLL_AP - l_M.policy.mort$df_YLL_AP
-    df_F.LYG_AP <- l_F.base.mort$df_YLL_AP - l_F.policy.mort$df_YLL_AP
-    v_M.LYGyear <- colSums(df_M.LYG_AP)
-    v_F.LYGyear <- colSums(df_F.LYG_AP)
-    v_B.LYGyear <- v_M.LYGyear + v_F.LYGyear
-    v_M.LYGcum  <- cumsum(v_M.LYGyear)
-    v_F.LYGcum  <- cumsum(v_F.LYGyear)
-    v_B.LYGcum  <- cumsum(v_B.LYGyear)
-    
-    v_M.SADs_averted_year <- l_M.base.mort$v_SADyear - l_M.policy.mort$v_SADyear
-    v_F.SADs_averted_year <- l_F.base.mort$v_SADyear - l_F.policy.mort$v_SADyear
-    v_B.SADs_averted_year <- v_M.SADs_averted_year + v_F.SADs_averted_year
-    v_M.SADs_avert_cum    <- cumsum(v_M.SADs_averted_year)
-    v_F.SADs_avert_cum    <- cumsum(v_F.SADs_averted_year)
-    v_B.SADs_avert_cum    <- cumsum(v_B.SADs_averted_year)
-    
-    m_M.mortout <- cbind(v_M.YLLyear, v_M.YLLcum, v_M.SADyear, v_M.SADcum,
-                         v_M.LYGyear, v_M.LYGcum, v_M.SADs_averted_year,
-                         v_M.SADs_avert_cum, startbc:endbc, "Male")
-    
-    m_F.mortout <- cbind(v_F.YLLyear, v_F.YLLcum, v_F.SADyear, v_F.SADcum,
-                         v_F.LYGyear, v_F.LYGcum, v_F.SADs_averted_year,
-                         v_F.SADs_avert_cum, startbc:endbc, "Female")
-    
-    m_B.mortout <- cbind(v_B.YLLyear, v_B.YLLcum, v_B.SADyear, v_B.SADcum,
-                         v_B.LYGyear, v_B.LYGcum, v_B.SADs_averted_year,
-                         v_B.SADs_avert_cum, startbc:endbc, "Both")
-    
-    df_mort.outputs <- as.data.frame(rbind(m_M.mortout, m_F.mortout, m_B.mortout))
-    colnames(df_mort.outputs) <- c("YLL","YLLcum","SADs","SADcum","LYG","LYGcum",
-                                   "SADsAverted","SADsAvertedcum","year","gender")
-    
-    df_mort.outputs$state <- fipscode
-    df_mort.outputs$abbr  <- fips_to_abbr(fipscode)
-    
-    df_mort.outputs <- df_mort.outputs %>%
-      mutate(across(c("YLL","YLLcum","SADs","SADcum","LYG","LYGcum",
-                      "SADsAverted","SADsAvertedcum","year"), as.numeric))
-    
-    df_mort.outputs
-  })
-  
-  
-  return(list(df_mort.outputs = df_mort.outputs, 
-              l_prev_out = l_prev_out, 
-              df_CSprevs.by.state = df_CSprevs.by.state))
-  
-}
-
 #===============================================================================
 # TCP Tool
 #===============================================================================
@@ -875,7 +587,7 @@ generate_TCPoutput <- function(l_prev_out, fipscode, policyyear,
   results_list <- list()
   count <- 1
   
-  #for (year in policyyear:endbc) {
+  # single cohorts
   for (year in policyyear:l_prev_out$endyear) {
     for (coh in as.integer(coh_keep)) {
       age <- year - coh
@@ -919,7 +631,73 @@ generate_TCPoutput <- function(l_prev_out, fipscode, policyyear,
     }
   }
   
+  agegroups <- c('12-17', '18-24', '25-44', '45-64', '65p', '18-99')
+  agel <- c(12, 18, 25, 45, 65, 18)
+  ageu <- c(17, 24, 44, 64, 99, 99)
+  
+  # Loop through years and age groups
+  for (year in policyyear:l_prev_out$endyear) {
+    
+    col_idx <- get_col(l_prev_out$male_base_prev_obj$m_popAP, year)
+    
+    for (kag in 1:6) {
+      # Determine row indices (Age 0 is row 1, so indices are age + 1)
+      # pmin/pmax ensures we don't exceed matrix bounds (0-99)
+      idx_range <- (agel[kag]:ageu[kag]) + 1
+      idx_range <- idx_range[idx_range <= 100] # Safety check
+      
+      # Sum Numerators (Smokers) and Denominators (Pop) across age range
+      
+      # --- Base ---
+      sum_M_smk_base <- sum(l_prev_out$male_base_prev_obj$m_smokersAP[idx_range, col_idx])
+      sum_M_pop_base <- sum(l_prev_out$male_base_prev_obj$m_popAP[idx_range, col_idx])
+      
+      sum_F_smk_base <- sum(l_prev_out$female_base_prev_obj$m_smokersAP[idx_range, col_idx])
+      sum_F_pop_base <- sum(l_prev_out$female_base_prev_obj$m_popAP[idx_range, col_idx])
+      
+      # --- Policy ---
+      sum_M_smk_pol <- sum(l_prev_out$male_prev_obj$m_smokersAP[idx_range, col_idx])
+      sum_M_pop_pol <- sum(l_prev_out$male_prev_obj$m_popAP[idx_range, col_idx])
+      
+      sum_F_smk_pol <- sum(l_prev_out$female_prev_obj$m_smokersAP[idx_range, col_idx])
+      sum_F_pop_pol <- sum(l_prev_out$female_prev_obj$m_popAP[idx_range, col_idx])
+      
+      # --- Helper to calculate rate ---
+      safe_rate <- function(n, d) if(d > 0) n/d else 0
+      
+      malebaseprev   <- safe_rate(sum_M_smk_base, sum_M_pop_base)
+      femalebaseprev <- safe_rate(sum_F_smk_base, sum_F_pop_base)
+      
+      malescenprev   <- safe_rate(sum_M_smk_pol, sum_M_pop_pol)
+      femalescenprev <- safe_rate(sum_F_smk_pol, sum_F_pop_pol)
+      
+      # Both Sexes
+      baseprev <- safe_rate((sum_M_smk_base + sum_F_smk_base), 
+                            (sum_M_pop_base + sum_F_pop_base))
+      
+      scenprev <- safe_rate((sum_M_smk_pol + sum_F_smk_pol), 
+                            (sum_M_pop_pol + sum_F_pop_pol))
+      
+      # Append to results_list
+      results_list[[count]] <- data.frame(
+        year = year,
+        age = agegroups[kag], # Use the string label (e.g., "12-17")
+        cohort = "ALL",
+        males_baseline = malebaseprev,
+        females_baseline = femalebaseprev,
+        males_policy = malescenprev,
+        females_policy = femalescenprev,
+        both_baseline = baseprev,
+        both_policy = scenprev,
+        policy_year = policyyear,
+        stringsAsFactors = FALSE
+      )
+      count <- count + 1
+    }
+  }
+  
   resultsfile <- do.call(rbind, results_list)
+  resultsfile <- resultsfile[order(resultsfile$cohort, resultsfile$age, resultsfile$year), ]
   
   if (write_files) {
     policy_part <- if (!is.null(policy_name) && nzchar(policy_name)) policy_name else NULL
@@ -941,6 +719,7 @@ generate_TCPoutput <- function(l_prev_out, fipscode, policyyear,
   }
   invisible(list(deaths = deathsfile, lyg = lygfile, results = resultsfile))
 }
+
 
 #===============================================================================
 # Cigarette Tax
