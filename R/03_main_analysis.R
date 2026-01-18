@@ -60,6 +60,10 @@ df_prices <- read.csv("state_tax/cigarette_prices_by_state_2025.csv", stringsAsF
   mutate(fips_code = sprintf("%02d", sapply(State, function(x) fips(x, to = "FIPS"))))
 
 
+#-------------------------------------------------------------------------------
+# each state
+#-------------------------------------------------------------------------------
+
 if (tax_policy == 1) {
   v_policy_years <- c(2026:2030, 2035, 2040)
   v_tax_hikes <- c(0, 1.00, 1.50, 2.00, 2.50, 3.00)
@@ -178,6 +182,151 @@ if (tax_policy == 1) {
             compress = "gzip")
   } 
 }
+
+
+#-------------------------------------------------------------------------------
+# parallel processing:
+#-------------------------------------------------------------------------------
+
+v_statefips=c('01','02','04','05','06','08','09',10:13,15:42,44:51,53:56)
+
+if (tax_policy == 1) {
+  v_policy_years <- c(2026:2030, 2035, 2040)
+  v_tax_hikes <- c(0, 1.00, 1.50, 2.00, 2.50, 3.00)
+  v_ppp_targets <- seq(8.00, 15.00, by = 0.50)
+  df_scenarios <- expand.grid(ppp_target = v_ppp_targets, tax_hike = v_tax_hikes)
+  
+  tax_rds_dir <- file.path(out_dir, "tax_scenario_rds")
+  dir.create(tax_rds_dir, recursive = TRUE, showWarnings = FALSE)
+}
+
+process_single_state <- function(s) {
+  project_root <- getwd()
+  setwd(project_root)
+  library(dplyr)
+  library(readr)
+  
+  t_state_start <- Sys.time()
+  state_results_list <- list() 
+  
+  initprice_s <- df_prices[df_prices$fips_code == s, "default_init_price"]
+  if (length(initprice_s) == 0 || is.na(initprice_s[1])) {
+    return(paste("Skipped (No Price):", s))
+  }
+  initprice_s <- as.numeric(initprice_s[1])
+  
+  abbr <- fips_to_abbr(s)
+  for (i in 1:nrow(df_scenarios)) {
+    
+    row <- df_scenarios[i, ]
+    target_ppp <- row$ppp_target
+    added_tax  <- row$tax_hike
+    
+    scenario_tag <- sprintf("%0.2f_t%0.2f", target_ppp, added_tax)
+    
+    accum_deaths  <- list()
+    accum_lyg     <- list()
+    accum_results <- list()
+    
+    for (py in v_policy_years) {
+      
+      gap_to_floor <- max(0, target_ppp - initprice_s)
+      total_tax_to_apply <- gap_to_floor + added_tax
+      
+      tax_effects <- tax_effectCalculation(
+        initprice = initprice_s, tax = total_tax_to_apply,
+        startbc = startbc, endyear = endyear, policyYear = py,
+        inidecay = 0.0, cesdecay = 0.2, iniagemod = 1, cesagemod = 1
+      )
+      
+      tax_out <- runstates(s, tax_effects$m.initiation.effect, tax_effects$m.cessation.effect)
+      
+      tcp_data <- generate_TCPoutput(
+        l_prev_out   = tax_out$l_prev_out,
+        fipscode     = s,
+        policyyear   = py,
+        s_cohorts    = seq(1970, 2030, by = 10),
+        policy_name  = "taxes",
+        scenario_tag = scenario_tag,
+        write_files  = FALSE
+      )
+      
+      accum_deaths[[as.character(py)]]  <- tcp_data$deaths
+      accum_lyg[[as.character(py)]]     <- tcp_data$lyg
+      accum_results[[as.character(py)]] <- tcp_data$results
+      
+      run_key <- paste0("y", py, "_p", target_ppp, "_t", added_tax)
+      state_results_list[[run_key]] <- list(
+        policy_year = py, ppp = target_ppp, tax_add = added_tax,
+        outputs = tax_out$df_mort.outputs, prevs = tax_out$df_CSprevs.by.state
+      )
+      
+      rm(tax_out, tax_effects, tcp_data)
+    }
+    
+    final_deaths  <- do.call(rbind, accum_deaths)
+    final_lyg     <- do.call(rbind, accum_lyg)
+    final_results <- do.call(rbind, accum_results)
+    
+    base_path <- file.path("tcp_tool", abbr, "taxes")
+    if(!dir.exists(file.path(base_path, "deaths"))) dir.create(file.path(base_path, "deaths"), recursive = TRUE)
+    if(!dir.exists(file.path(base_path, "lyg"))) dir.create(file.path(base_path, "lyg"), recursive = TRUE)
+    if(!dir.exists(file.path(base_path, "results"))) dir.create(file.path(base_path, "results"), recursive = TRUE)
+    
+    write_csv(final_deaths,  file.path(base_path, "deaths",  paste0("deaths_",  scenario_tag, ".csv")))
+    write_csv(final_lyg,     file.path(base_path, "lyg",     paste0("lyg_",     scenario_tag, ".csv")))
+    write_csv(final_results, file.path(base_path, "results", paste0("results_", scenario_tag, ".csv")))
+    
+    gc()
+    
+  } 
+  saveRDS(list(state = s, init_price = initprice_s, results = state_results_list),
+          file = file.path(tax_rds_dir, paste0(s, "_all_scenarios.rds")),
+          compress = "gzip")
+  
+  time_taken <- round(difftime(Sys.time(), t_state_start, units = "mins"), 2)
+  return(paste("Success:", abbr, "Time:", time_taken, "mins"))
+}
+
+
+n_cores <- detectCores(logical = FALSE) - 1
+message(paste("Initiating cluster with", n_cores, "cores"))
+cl <- makeCluster(n_cores)
+clusterExport(cl, varlist = c(
+  "project_wd",
+  "df_prices", "df_scenarios", "v_policy_years", "tax_rds_dir", 
+  "startbc", "endbc", "endyear", "cohyears", "out_dir", "v_stdbirths",
+  "process_single_state", 
+  "v_calyears",
+  "runstates", 
+  "make_tcp_out",
+  "generate_prevs", 
+  "calculate_mort", 
+  "tax_effectCalculation", 
+  "generate_TCPoutput", 
+  "fips_to_abbr"
+))
+
+clusterEvalQ(cl, {
+  library(dplyr)
+  library(readr)
+  library(cdlTools)
+  library(parallel)
+})
+
+results_log <- parLapply(cl, v_statefips, process_single_state)
+
+stopCluster(cl)
+print(results_log)
+
+
+
+
+
+
+
+
+
 
 
 # ------------------------ Tobacco Control Expenditures Analysis -------------------------
