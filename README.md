@@ -112,8 +112,8 @@ PharmacoEconomics, vol. 37, no. 11, 24 Sept. 2019, pp. 1329–1339, https://doi.
 # Authors and acknowledgments
 Mengyao Wang<sup>1</sup> \
 Sarah Skolnick, MPH, PhD<sup>2</sup> \
-Rafael Meza, PhD<sup>3</sup> 
-Jamie Tam, MPH, PhD<sup>2,4</sup> \
+Rafael Meza, PhD<sup>3</sup> \
+Jamie Tam, MPH, PhD<sup>2,4</sup>
 
 ### Author Affiliations:
 
