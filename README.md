@@ -111,14 +111,16 @@ PharmacoEconomics, vol. 37, no. 11, 24 Sept. 2019, pp. 1329–1339, https://doi.
 
 # Authors and acknowledgments
 Mengyao Wang<sup>1</sup> \
-Jamie Tam<sup>2,3</sup> \
-Sarah Skolnick<sup>3</sup> 
+Sarah Skolnick, MPH, PhD<sup>2</sup> \
+Rafael Meza, PhD<sup>3</sup> 
+Jamie Tam, MPH, PhD<sup>2,4</sup> \
 
 ### Author Affiliations:
 
 1.	Department of Biostatistics, Yale Graduate School of Arts and Sciences
-2.	Department of Health Behavior, Society, and Policy, Rutgers School of Public Health
-3.	Rutgers Institute for Nicotine and Tobacco Studies
+2.	Rutgers Institute for Nicotine and Tobacco Studies
+3.	BC Cancer Research Center
+4.	Department of Health Behavior Society and Policy, Rutgers School of Public Health
    
 Model code is based on the Cancer Intervention and Surveillance Modeling Network (CISNET) Smoking History Generator Population Model
 used for modeling the effects of graphic health warnings (Tam et al., 2021). See corresponding GitHub repository [here](https://github.com/mezarafael/SHG_PopModel_GHW).
